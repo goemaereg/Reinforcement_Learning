@@ -2,9 +2,10 @@
 Implementations of the algorithms and methods learnt throughout the book [Reinforcement Learning : An Introduction](http://incompleteideas.net/book/the-book-2nd.html) by Sutton and Barto.
 
 ## Installing
-The table-based algorithms implemented there use small Gridworld environments and other env additions to the Gym package.
-The render-supported versions I use are implemented on [my forked repository](https://github.com/Louis-Bagot/gym-additions) of [Ondřej Podsztavek's work](https://github.com/podondra/gym-gridworlds).
-The repository can be simply cloned and added to the python path in order to instantiate a gym-like environment as reported in the original repository :
+The algorithms used here are tested on additions to the Gym package.
+The render-supported versions I use are implemented in the `gym-additions` folder, forked from [Ondřej Podsztavek's work](https://github.com/podondra/gym-gridworlds).
+
+To paraphrase his README, the environments can be simply used :
 ```
 $ import gym
 $ import gym_gridworlds
