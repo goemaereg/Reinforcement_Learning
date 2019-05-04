@@ -12,7 +12,7 @@ With some estimates <img src="/theory/tex/9ee5fc9fca722cbd0f762e76db8201c7.svg?i
 
 We can, instead, *explore* different actions to gather knowledge about their values. This would enable us to perform a better action later on, so this is a more far-sighted strategy that only makes sense if we have many steps available.
 
-As we cannot perform both at once, we need a XX strategy.
+As we cannot perform both at once, we need an XX strategy.
 
 ## Action-value
 An *action-value function*, in this context, estimates the value of each action, like <img src="/theory/tex/025b11cd28d6c936d3062a554bbaf0b5.svg?invert_in_darkmode&sanitize=true" align=middle width=17.96121689999999pt height=22.465723500000017pt/> recently introduced.
