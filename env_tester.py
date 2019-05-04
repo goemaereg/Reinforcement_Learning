@@ -1,7 +1,7 @@
 import gym
 import gym_additions
 import json
-from agents.core import Random_Agent
+from agents_core import Random_Agent
 
 env = gym.make('TicTacToe-v0')
 agent = Random_Agent((env.observation_space.shape, env.action_space.n))

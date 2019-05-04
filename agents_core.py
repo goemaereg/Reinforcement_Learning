@@ -4,7 +4,7 @@ from utils import assert_not_abstract
 class Agent():
     """ An Agent is an abstract entity that can simply act in an environment.
 
-        It can also be able to learn given useful information.
+        It can also learn given useful information.
         """
 
     def __init__(self, env_shapes, **kwargs):
@@ -20,11 +20,12 @@ class Agent():
             """
         raise NotImplementedError("Calling abstract method act in Agent")
 
-    def learn(s, a, r, s_):
+    def learn(s, a, r, s_, d=None):
         """ Learns provided usual essential information,
-            i.e. transition s - s_ given action a, resulting in reward r.
+            i.e. transition s -> s_ given action a, resulting in reward r.
+            Optional d indicates whether the state is terminal.
 
-            Leave blank for a non-learning agent.
+            Leave blank for a non-learning agent (eg random).
             """
         pass
 

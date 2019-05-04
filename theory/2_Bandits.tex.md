@@ -12,7 +12,7 @@ With some estimates $Q_t\left(a\right)\,\, \forall a$, we have the possibility t
 
 We can, instead, *explore* different actions to gather knowledge about their values. This would enable us to perform a better action later on, so this is a more far-sighted strategy that only makes sense if we have many steps available.
 
-As we cannot perform both at once, we need a XX strategy.
+As we cannot perform both at once, we need an XX strategy.
 
 ## Action-value
 An *action-value function*, in this context, estimates the value of each action, like $Q_t$ recently introduced.
