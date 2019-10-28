@@ -1,72 +1,68 @@
 import numpy as np
 from utils import save_plot
-from bandit.core import Bandit
-from bandit.agents import SA_Agent
+from bandit.core import *
+from bandit.agents import *
+import time
 
-def run(epsilon, n_actions=10, max_steps=1000):
-    """ Runs a single (epsilon-greedy / sample-average) strategy on a
-        n_actions-armed bandit problem.
-        """
-    b = Bandit(lever_types=['Gaussian']*n_actions)
-    a = SA_Agent(n_actions)
-    q = np.random.randn(n_actions)  # true action-value functions
-    Q = np.zeros(n_actions)         # q estimator
-    visits = np.zeros(n_actions)    # number of visits of each action
+def run(bandit, agent, max_steps):
+    """ Single run of a bandit  problem (Bandit-Agent interactions) """
     reward_record = np.empty(max_steps)
-    norm_record = np.empty(max_steps)
+    agent.reset()
+    bandit.reset()
+    action_time_record = np.empty(max_steps)
+    learn_time_record = np.empty(max_steps)
     for step in range(max_steps):
-        action = epsilon_greedy(epsilon, Q)
-        reward = compute_reward(q[action])
-        visits[action] += 1
-        Q[action] += (reward - Q[action])/visits[action] # mean increment
+        init = time.time()
+        action = agent.act()
+        action_time_record[step] = time.time() - init
 
-        norm = np.linalg.norm(Q-q)
-        norm_record[step] = norm
+        reward = bandit.pull(action)
+
+        init = time.time()
+        agent.learn(action, reward)
+        learn_time_record[step] = time.time() - init
         reward_record[step] = reward
 
-    return reward_record, norm_record
+    if np.random.rand() < 0.01:
+        print("\t\tAverage action time: {}".format(action_time_record.mean()))
+        print("\t\tAverage learn time: {}".format(learn_time_record.mean()))
+    return reward_record
 
-def many_runs(n_runs, epsilon, max_steps=2000, plotting=True):
-    """ Runs n_runs of the bandit problem with an epsilon_greedy.
-        We record and return the rewards and norms
+def many_runs(bandit, agent, n_runs, max_steps=1000, plotting=True):
+    """ Runs n_runs of a given bandit problem, each returning the online rewards
         We plot their average over the runs if 'plotting'.
         """
     reward_record_runs = np.empty((n_runs, max_steps))
-    norm_record_runs = np.empty((n_runs, max_steps))
     for r in range(n_runs):
-        reward_record_runs[r], norm_record_runs[r] = run(epsilon, \
-                                                         max_steps=max_steps)
+        if (r%(n_runs//5)==0): print("\tRun {}/{}".format(r, n_runs))
+        reward_record_runs[r] = run(bandit, agent, max_steps)
 
     perf = np.mean(reward_record_runs, axis=0)
-    norm = np.mean(norm_record_runs, axis=0)
     if plotting:
-        save_plot(perf, 'perf'+str(epsilon), 'Average over '+str(n_runs)+' runs : Reward over time for eps='+str(epsilon), xlabel='Step', ylabel='Reward')
-        save_plot(norm, 'norm'+str(epsilon), 'Average over '+str(n_runs)+' runs : Norm of (Q-q) for eps='+str(epsilon), xlabel='Step', ylabel='Norm (Q-q)')
+        save_plot(perf, 'bandit/plots/{}'.format(agent.name), "{} performance average over {} runs\nParameters: {}".format(agent.name, n_runs, agent.tell_specs()), xlabel='Step', ylabel='Reward')
 
-    return perf, norm
-
-def eps_spectrum(n_epsilons, n_runs, n_last_perf=10, plotting=True):
-    """ Compares performance and converge of a whole spectrum of epsilons.
-        n_last_perf gives the number of steps to consider for final averaging.
-        """
-    comp_perf = np.empty(n_epsilons)
-    comp_norm = np.empty(n_epsilons)
-    epsilons = np.linspace(0,.2,n_epsilons)
-    for i,epsilon in enumerate(epsilons):
-        perf, norm = many_runs(n_runs, epsilon, plotting=False)
-        comp_perf[i] = np.mean(perf[-n_last_perf:])
-        comp_norm[i] = np.mean(norm[-n_last_perf:])
-        print("[", comp_perf[i], ",", epsilon, "],")
-
-    if plotting:
-        dest = './bandits/plots/'
-        save_plot(comp_perf, dest+'perf_spectrum', 'Final performances over '+str(n_runs)+' runs : reward comparison for varying epsilon', xlabel='Epsilon', ylabel='Average rewards over last '+str(n_last_perf)+' steps', xaxis=epsilons)
-        save_plot(comp_norm, dest+'norm_spectrum', 'Final norms over '+str(n_runs)+' runs : norm(Q-q) comparison for varying epsilon', xlabel='Epsilon', ylabel='Average norm over last '+str(n_last_perf)+' steps', xaxis=epsilons)
-
-    return comp_norm, comp_perf
+    return perf
 
 
+#print("|Q-q| distance: {}".format(np.linalg.norm(agent.Qs - bandit.reveal_qstar())))
 if __name__ == '__main__':
+    n_arms = 10
+    bandit = Bandit(lever_types=[Gaussian_Lever]*n_arms)
+    agents = [EpsGreedy(n_arms, epsilon=1/16),
+              NonStat_EpsGreedy(n_arms, alpha=1/16),
+              OptimisticInits(n_arms, Q0=1.),
+              Gradient_Bandit(n_arms, alpha=1/4),
+              UCB(n_arms, 1.)]
     n_runs = 1000
-    n_epsilons = 21
-    eps_spectrum(n_epsilons, n_runs)
+    max_steps = 1000
+    perfs = np.empty((len(agents), max_steps))
+    for i,agent in enumerate(agents):
+        print("Agent {}".format(agent.name))
+        agent_init = time.time()
+        perfs[i] = many_runs(bandit, agent, n_runs, max_steps, plotting=False)
+        print("\tDone in {}".format(time.time() - agent_init))
+
+    save_plot(perfs, 'bandit/plots/all_agents',
+              "Performance average over {} runs of all agents".format(n_runs),
+              xlabel='Step', ylabel='Reward',
+              labels=[agent.name for agent in agents])

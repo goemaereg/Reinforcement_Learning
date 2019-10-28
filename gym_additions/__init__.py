@@ -16,3 +16,7 @@ register(
         id='TicTacToe-v0',
         entry_point='gym_additions.envs:TicTacToeEnv',
         )
+register(
+        id='Cross6-v0',
+        entry_point='gym_additions.envs:Cross6Env',
+        )

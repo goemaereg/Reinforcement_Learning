@@ -1,6 +1,7 @@
 import gym
 from gym import spaces
-import numpy
+import numpy as np
+import random
 
 
 class GridworldEnv(gym.Env):
@@ -41,7 +42,7 @@ class GridworldEnv(gym.Env):
         return self.S, -1, self.S in self.terminals, {}
 
     def reset(self):
-        self.S = (3, 0)
+        self.S = random.choice(((3, 0), (2,1), (1,2), (0,3)))
         return self.S
 
     def render(self):

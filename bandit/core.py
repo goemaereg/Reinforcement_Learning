@@ -1,4 +1,5 @@
 from utils import assert_not_abstract, str2class
+import numpy as np
 
 class Lever(object):
     """ Abstract concept of a Lever the Agent pulls.
@@ -54,7 +55,20 @@ class Bandit(object):
             New lever types may be added to the list in instantiate_lever,
             provided these exist in the levers above.
             """
-        self.n_levers = len(lever_types)
+        self.n_levers = len(lever_types) # or "arm"
         self.levers = [None] * self.n_levers
-        for i, lever_type in enumerate(lever_types):
-            self.levers[i] = str2class(lever_type + '_Lever')
+        self.lever_types = lever_types
+        self.reset()
+
+    def reset(self):
+        """ Resets (new values for the levers) """
+        for i, lever_type in enumerate(self.lever_types):
+            self.levers[i] = lever_type()
+
+    def pull(self, l):
+        """ Returns the reward for pulling the lever l. """
+        return self.levers[l].pull()
+
+    def reveal_qstar(self):
+        """ Reveals the true q_* values of the actions """
+        return np.array([lever.mean for lever in self.levers])
