@@ -1,5 +1,6 @@
-# Reinforcement_SuttonBarto
+# Reinforcement_Learning
 Implementations of the algorithms and methods learnt throughout the book [Reinforcement Learning : An Introduction](http://incompleteideas.net/book/the-book-2nd.html) by Sutton and Barto.
+Using them to compare with new algorithms found in the litterature.
 
 ## Installing
 The algorithms used here are tested on additions to the Gym package.
