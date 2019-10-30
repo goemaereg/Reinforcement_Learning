@@ -3,9 +3,9 @@ import gym_additions
 import json
 from agents_core import Random_Agent
 
-env = gym.make('Cross6-v0')
+env = gym.make('RaceTrack-v0')
 agent = Random_Agent((env.observation_space.shape, env.action_space.n))
-
+print("Environment shapes:{}".format((env.observation_space.shape, env.action_space.n)))
 n_episodes = 1
 n_steps = 20
 
@@ -15,7 +15,6 @@ for ep in range(n_episodes):
     for step in range(n_steps):
         env.render()
         action = agent.act(obs)
-        action = 1
         print("Action is {}".format(action))
         obs, reward, done, info = env.step(action)
         cumreward += reward

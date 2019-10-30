@@ -2,6 +2,7 @@ import matplotlib
 matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import numpy as np
+from time import time
 
 def assert_not_abstract(obj, abstract_name):
     """ Makes sure the obj isn't a instance of the abstract class calling this.
@@ -55,6 +56,12 @@ def str2class(class_string):
         return globals()[class_string]
     except KeyError as ke:
         print(ke, "Tried to access an undefined class :", class_string)
+
+def my_timeit(f, **kwargs):
+    """ Returns the function execution time"""
+    init = time()
+    f(**kwargs)
+    return time() - init
 
 def my_random_choice(v, p=None):
     """ Faster version of the np.random.choice function with probabilities """
