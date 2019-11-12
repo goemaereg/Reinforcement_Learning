@@ -9,6 +9,14 @@ register(
     entry_point='gym_additions.envs:WindyGridworldEnv',
     )
 register(
+    id='WindyGridworld-v1',
+    entry_point='gym_additions.envs:WindyGridworldKingEnv',
+    )
+register(
+    id='WindyGridworld-v2',
+    entry_point='gym_additions.envs:WindyGridworldStochaEnv',
+    )
+register(
     id='Cliff-v0',
     entry_point='gym_additions.envs:CliffEnv',
     )
@@ -27,4 +35,28 @@ register(
 register(
     id='RaceTrack-v0',
     entry_point='gym_additions.envs:RaceTrackEnv',
+    )
+register(
+    id='RaceTrack-v1',
+    entry_point='gym_additions.envs:RaceTrackPunishEnv',
+    )
+register(
+    id='RandomWalk-v0',
+    entry_point='gym_additions.envs:RandomWalkEnv',
+    )
+register(
+    id='MaxBias-v0',
+    entry_point='gym_additions.envs:MaxBiasEnv',
+    )
+register(
+    id='DynaMaze-v0',
+    entry_point='gym_additions.envs:DynaMazeEnv',
+    )
+register(
+    id='BlockingMaze-v0',
+    entry_point='gym_additions.envs:BlockingMazeEnv',
+    )
+register(
+    id='ShortcutMaze-v0',
+    entry_point='gym_additions.envs:ShortcutMazeEnv',
     )

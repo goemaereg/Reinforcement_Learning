@@ -77,6 +77,7 @@ class RaceTrackEnv(gym.Env):
             done = True
         elif self._hit_obstacle():
             self.reset()
+        np.clip(self.position, 0, self.size-1, out=self.position)
         # Returns; anything brings a reward of -1
         return (*tuple(self.position), *tuple(self.speed)), -1, done, {}
 
@@ -90,3 +91,30 @@ class RaceTrackEnv(gym.Env):
         all_pos = np.array(self.pos_history)
         s[all_pos[:,0], all_pos[:,1]] = '.'
         print(s)
+
+class RaceTrackPunishEnv(RaceTrackEnv):
+    """ Identical to RaceTrack but gives a strong negative reward and ends the
+    episode when the car drives oof the track."""
+
+    def step(self, action):
+        """ Moves the car according to the speed (changed by action) """
+        assert action in self.action_space, "Invalid action: {}".format(action)
+        self.speed += self._action2move(action)
+        self.speed.clip(0,4,self.speed) # speed constraints
+        if not np.any(self.speed != 0): # speed can't be all 0 so add random
+            self.speed[np.random.rand()<0.5] = 1
+        self.position += self.speed
+        self.pos_history.append(tuple(self.position))
+        done = False
+        r = -1
+        # Goal checking
+        if (self.position[0] in range(self.obstacle[0], self.size))\
+           and (self.position[1] >= self.size-1):
+            done = True
+            if np.random.rand()<0.01: print("\t\tGoal reached!")
+        elif self._hit_obstacle():
+            done = True
+            r = -10
+        np.clip(self.position, 0, self.size-1, out=self.position)
+        # Returns; anything brings a reward of -1, except going off track
+        return (*tuple(self.position), *tuple(self.speed)), r, done, {}

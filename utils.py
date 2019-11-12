@@ -3,6 +3,7 @@ matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import numpy as np
 from time import time
+import random
 
 def assert_not_abstract(obj, abstract_name):
     """ Makes sure the obj isn't a instance of the abstract class calling this.
@@ -13,7 +14,7 @@ def assert_not_abstract(obj, abstract_name):
 
 def save_plot(l, file_name, title, xlabel, ylabel,
               xaxis=None, force_xaxis_0=False, smooth_avg=0, only_avg=False,
-              labels=None):
+              labels=None, xlineat=None, ylineat=None):
     """ Simply saves a plot with multiple usual arguments.
         smooth_avg > 0 adds a smoothed curved over 2*the number of surrounding episodes given
         """
@@ -45,6 +46,11 @@ def save_plot(l, file_name, title, xlabel, ylabel,
     if force_xaxis_0:
         x1,x2,y1,y2 = plt.axis()
         plt.axis((x1,x2,0,y2))
+
+    if xlineat is not None:
+        plt.axhline(xlineat, color='red', linewidth=0.5)
+    if ylineat is not None:
+        plt.axvline(ylineat)
 
     file_name += '.png'
     plt.savefig(file_name)
@@ -82,3 +88,16 @@ def my_random_choice(v, p=None):
     else:
         assert len(v) == len(p), "Incorrect entry lengths v,p: {} != {}".format(len(v), len(p))
         return v[i]
+
+
+def my_argmax(v):
+    """ Breaks ties randomly. """
+    maximum = v[0]
+    indexes = [0]   # indexes that maximize v
+    for i in range(1,len(v)):
+        if v[i] > maximum:
+            maximum = v[i]
+            indexes = [i]
+        elif v[i] == maximum:
+            indexes.append(i)
+    return random.choice(indexes)

@@ -1,6 +1,7 @@
 import numpy as np
 from utils import assert_not_abstract
-from agents_core import Agent, QLearning
+from agents_core import Agent
+from .agents import QLearning
 
 class HQL(Agent):
     """ Composed of 2 QL agents:
