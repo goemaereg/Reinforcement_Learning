@@ -8,3 +8,6 @@ from gym_additions.envs.racetrack_env import *    # noqa
 from gym_additions.envs.randomwalk_env import RandomWalkEnv    # noqa
 from gym_additions.envs.maxbias_env import MaxBiasEnv    # noqa
 from gym_additions.envs.dynamaze_env import *    # noqa
+from gym_additions.envs.cartpole_env import *    # noqa
+from gym_additions.envs.acrobot_env import *    # noqa
+from gym_additions.envs.fourrooms_env import *    # noqa

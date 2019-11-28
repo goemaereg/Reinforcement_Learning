@@ -60,3 +60,15 @@ register(
     id='ShortcutMaze-v0',
     entry_point='gym_additions.envs:ShortcutMazeEnv',
     )
+register(
+    id='CartPole-v2',
+    entry_point='gym_additions.envs:CartPoleTileEnv',
+    )
+register(
+    id='Acrobot-v2',
+    entry_point='gym_additions.envs:AcrobotTileEnv',
+    )
+register(
+    id='FourRooms-v0',
+    entry_point='gym_additions.envs:FourRoomsEnv',
+    )

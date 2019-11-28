@@ -295,3 +295,37 @@ class DynaQPlus2(DynaQPlus):
                 print("Q values of possible actions: {}".format(self.Qtable[obs]))
             action = my_argmax(self.Qtable[obs] + self.kappa*np.sqrt(self.taus[obs]))
             return action
+
+class EligibilityTraces(Sarsa):
+    """ Improvement on QLearning with Eligibility Traces in tabular case."""
+
+    """ Tabular method that keeps the Q-values of all the possible
+    state-action pairs and acts eps-greedy """
+    def __init__(self, env_shapes, lbda=0.9, epsilon=0.1, learn_rate=2.5e-4, gamma=0.9,
+                 explo_horizon=50000, **kwargs):
+        super(EligibilityTraces, self).__init__(env_shapes, epsilon, learn_rate, gamma, explo_horizon) # inits shapes
+        self.name = 'EligibilityTraces'
+        self.lbda = lbda # lambda but it's a reserved keyword in python
+        self.reset()
+
+    def reset(self):
+        self.Qtable = np.zeros((*self.input_shape, self.n_actions)) # arb init at 0
+        self.traces = np.zeros((*self.input_shape, self.n_actions)) # arb init at 0
+        self.anneal_epsilon(0)
+        self.step = 0
+        self.verbose = False
+
+    def learn(self, s, a, r, s_, d=None):
+        """ Updates the Qtable based on the s,a,r,s_ transition.
+        Updates the annealing epsilon. """
+        self.traces *= self.lbda*self.gamma
+        self.traces[s][a] += 1
+        delta = r + self.gamma*self.Qtable[s_][self.act(s_)] - self.Qtable[s][a]
+        self.Qtable += self.learn_rate * delta * self.traces
+        self.step += 1
+        self.anneal_epsilon(self.step)
+
+    def tell_specs(self) -> str:
+        """ Specifies the specs of the agent (hyperparameters mainly) """
+        return "eps={}, learn_rate={}, gamma={}, lambda={}"\
+               .format(self.epsilon, self.learn_rate, self.gamma, self.lbda)

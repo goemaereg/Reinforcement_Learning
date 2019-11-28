@@ -1,27 +1,26 @@
 import gym
 import gym_additions
 import json
-from tabular.agents import *
-from tabular.hierarchical import *
+from linear.agents_tiling import *
 from utils import save_plot
 
-env_name = 'FourRooms-v0'
+env_name = 'Acrobot-v2'
 env = gym.make(env_name)
-shapes = (tuple([s.n for s in env.observation_space]), env.action_space.n)
+print(env.observation_space)
+shapes = ((env.observation_space.n,), env.action_space.n)
+n_episodes = 5000
+n_steps = 500
 d = {
     'env_shapes': shapes,
-    'explo_horizon': 1,
-    'learn_rate': 0.05,
-    'gamma': 0.9,
-    'lambda': 0.9,
+    'explo_horizon': n_steps*n_episodes/5,
+    'min_eps': 0.1,
+    'learn_rate': 0.01,
+    'gamma':.9,
     'n': 10
 }
-
-agent = EligibilityTraces(**d)
+agent = QLearning(**d)
 
 def test(agent, env, n_steps, n_episodes=10):
-    #print("maxes of Qtable after taining: \n{}".format(np.max(agent.Qtable,axis=-1)))
-    # Testing phase
     agent.verbose = True
     old_eps = agent.epsilon
     agent.epsilon = 0
@@ -32,7 +31,6 @@ def test(agent, env, n_steps, n_episodes=10):
         for step in range(n_steps):
             env.render()
             action = agent.act(obs)
-            print("Action is {}".format(action))
             obs, reward, done, info = env.step(action)
             cumreward += reward
             if done:
@@ -46,19 +44,13 @@ def test(agent, env, n_steps, n_episodes=10):
     agent.epsilon = old_eps
     return rewards_history.mean()
 
-#agent.play_around(env, n_steps=20000)
-
-n_episodes = 500
-n_steps = 150000 # virually never
 evaluations_history = []
 # Training phase
 rewards_history = np.empty(n_episodes)
 for ep in range(n_episodes):
     if (ep%(n_episodes//5)==0):
         print("Episode {}/{}".format(ep+1, n_episodes))
-#        evaluations_history.append(test(agent, env, n_steps,n_episodes=1))
-#        print("Task success rates: {}".format(agent.success_counter/agent.asked_counter))
-#        print("Current meta policy: {}".format(agent.meta_policy()))
+        evaluations_history.append(test(agent, env, n_steps, n_episodes=3))
 
     obs = env.reset()
     cumreward = 0
@@ -75,16 +67,17 @@ for ep in range(n_episodes):
 
 env.close()
 print("Evaluations history: {}".format(evaluations_history))
-print("Final performance: {}".format(rewards_history[-1]))
+
 #print("Task success rates: {}".format(agent.success_counter/agent.asked_counter))
 #print("Current meta policy: {}".format(agent.meta_policy()))
 
 # plotting
+env_name = env_name[:-3]
 launch_specs = 'baseline'
-file_name = "tabular/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
-suptitle = "Performance of {} on {}".format(agent.name, env_name[:-3])
+file_name = "linear/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
+suptitle = "Performance of {} on {}".format(agent.name, env_name)
 title = agent.tell_specs()
 xlabel = 'Episode'
 ylabel = "Performance at {}".format(env_name)
 save_plot(rewards_history, file_name, suptitle, title, xlabel, ylabel,
-          smooth_avg=n_episodes//100, only_avg=False, xlineat=rewards_history[-1])
+          smooth_avg=n_episodes//100, only_avg=False)
