@@ -8,7 +8,7 @@ class FourRoomsEnv(gym.Env):
     Starting up left, goal in lower-right.
         """
     def __init__(self):
-        roomsize = 10
+        roomsize = 25
         self.height = 2*roomsize +1 # +1 is obstacle width
         self.width = self.height
         half = self.width // 2 # shortcut
@@ -53,7 +53,7 @@ class FourRoomsEnv(gym.Env):
                       min(self.s[1], self.width - 1))
 
         done = (self.s == self.terminal)
-        return self.s, int(done)-1, done, {}
+        return self.s, int(done), done, {}
 
 
     def render(self):

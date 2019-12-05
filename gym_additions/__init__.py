@@ -65,10 +65,42 @@ register(
     entry_point='gym_additions.envs:CartPoleTileEnv',
     )
 register(
+    id='CartPole-v3',
+    entry_point='gym_additions.envs:CartPolePolyEnv',
+    )
+register(
+    id='CartPole-v4',
+    entry_point='gym_additions.envs:CartPoleDoubleEnv',
+    )
+register(
     id='Acrobot-v2',
     entry_point='gym_additions.envs:AcrobotTileEnv',
     )
 register(
+    id='Acrobot-v3',
+    entry_point='gym_additions.envs:AcrobotPolyEnv',
+    )
+register(
+    id='Acrobot-v4',
+    entry_point='gym_additions.envs:AcrobotDoubleEnv',
+    )
+register(
     id='FourRooms-v0',
     entry_point='gym_additions.envs:FourRoomsEnv',
+    )
+register(
+    id='MountainCar-v2',
+    entry_point='gym_additions.envs:MountainCarTileEnv',
+    )
+register(
+    id='MountainCar-v3',
+    entry_point='gym_additions.envs:MountainCarPolyEnv',
+    )
+register(
+    id='MountainCar-v4',
+    entry_point='gym_additions.envs:MountainCarDoubleEnv',
+    )
+register(
+    id='ShortCorridor-v0',
+    entry_point='gym_additions.envs:ShortCorridorEnv',
     )

@@ -310,7 +310,7 @@ class EligibilityTraces(Sarsa):
 
     def reset(self):
         self.Qtable = np.zeros((*self.input_shape, self.n_actions)) # arb init at 0
-        self.traces = np.zeros((*self.input_shape, self.n_actions)) # arb init at 0
+        self.traces = np.zeros_like(self.Qtable) # arb init at 0
         self.anneal_epsilon(0)
         self.step = 0
         self.verbose = False
@@ -322,6 +322,8 @@ class EligibilityTraces(Sarsa):
         self.traces[s][a] += 1
         delta = r + self.gamma*self.Qtable[s_][self.act(s_)] - self.Qtable[s][a]
         self.Qtable += self.learn_rate * delta * self.traces
+        if d:
+            self.traces = np.zeros_like(self.Qtable)
         self.step += 1
         self.anneal_epsilon(self.step)
 

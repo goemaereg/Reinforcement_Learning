@@ -22,17 +22,19 @@ class Sarsa(Agent):
         self.reset()
 
     def reset(self):
+#        self.w = np.random.randn(self.input_dim, self.n_actions)*0.01 # arb init at 0
         self.w = np.zeros((self.input_dim, self.n_actions)) # arb init at 0
         self.anneal_epsilon(0)
         self.step = 0
         self.verbose = False
 
-    def _q_hat(self, s_idx):
+    def _q_hat(self, s_idx, a=None):
         """ Evaluates our q function for all actions, taking into account that
         the state comes as an array of indices; the Tile Coding being
         constructed so (one_hot) that we just need to sum w over those indices.
         """
-        return np.sum(self.w[s_idx], axis=0)
+        q_s = np.sum(self.w[s_idx], axis=0)
+        return q_s if a is None else q_s[a]
 
     def act(self, x):
         """ Epsilon-greedy policy over w. In Tile Coding, x is an array of
@@ -41,7 +43,7 @@ class Sarsa(Agent):
             return np.random.randint(self.n_actions)
         else:
             action_values = self._q_hat(x)
-            if self.verbose and np.random.rand()<0.01:
+            if self.verbose and np.random.rand()<0.1:
                 print("Q values of possible actions: {}".format(action_values))
             return my_argmax(action_values)
 
@@ -53,8 +55,8 @@ class Sarsa(Agent):
         """ Updates the weight vector based on the x,a,r,x_ transition,
         where x is the feature vector of currnt state s.
         Updates the annealing epsilon. """
-        delta = r + self.gamma*self._q_hat(x_)[self.act(x_)] - self._q_hat(x)[a]
-        self.w[x] += self.learn_rate*delta
+        delta = r + self.gamma*self._q_hat(x_, self.act(x_)) - self._q_hat(x, a)
+        self.w[x,a] += self.learn_rate*delta
         # anneal epsilon
         self.step += 1
         self.anneal_epsilon(self.step)
@@ -79,8 +81,8 @@ class ExpectedSarsa(Sarsa):
         q_hat_x_ = self._q_hat(x_)
         expectation = self.epsilon/self.n_actions*np.sum(q_hat_x_)\
                       + (1-self.epsilon)*np.max(q_hat_x_)
-        delta = r + self.gamma*self._q_hat(x_)[self.act(x_)] - self._q_hat(x)[a]
-        self.w[x] += self.learn_rate*delta
+        delta = r + self.gamma*expectation - self._q_hat(x, a)
+        self.w[x,a] += self.learn_rate*delta
         # anneal epsilon
         self.step += 1
         self.anneal_epsilon(self.step)
@@ -96,7 +98,7 @@ class QLearning(Sarsa):
         """ Updates the w based on the x,a,r,x_ transition.
         QLearning maxes over actions in the future state (off policy).
         Updates the annealing epsilon. """
-        delta = r + self.gamma*max(self._q_hat(x_)) - self._q_hat(x)[a]
-        self.w[x] += self.learn_rate*delta
+        delta = r + self.gamma*max(self._q_hat(x_)) - self._q_hat(x, a)
+        self.w[x,a] += self.learn_rate*delta
         self.step += 1
         self.anneal_epsilon(self.step)

@@ -1,29 +1,48 @@
 import gym
 import gym_additions
 import json
-from linear.agents_tiling import *
-from utils import save_plot
+from linear.agents import *
+from linear.evolutionary import *
+from utils import save_plot, ensure_dir
+import random
 
-env_name = 'Acrobot-v2'
+np.random.seed(0)
+random.seed(0)
+
+env_name = 'CartPole-v4'
 env = gym.make(env_name)
+version = env_name[-2:]
+env_name = env_name[:-3]
 print(env.observation_space)
-shapes = ((env.observation_space.n,), env.action_space.n)
+if int(version[-1])<=3:
+    shapes = ((env.observation_space.n,), env.action_space.n)
+else:
+    shapes = ((env.observation_space.spaces[0].n,env.observation_space.spaces[1].n), env.action_space.n)
+#shapes = ((env.observation_space.shape[0],), env.action_space.n)
 n_episodes = 5000
-n_steps = 500
+n_steps = 200
 d = {
+    # classic RL
     'env_shapes': shapes,
-    'explo_horizon': n_steps*n_episodes/5,
+    'explo_horizon': 1,
     'min_eps': 0.1,
-    'learn_rate': 0.01,
-    'gamma':.9,
-    'n': 10
+    'learn_rate': 0.0001,
+    'learn_rate_w': 0.001,
+    'temperature': 1,
+    'gamma':1,
+    'lmbda': 0.9,
+    'n': 10,
+    # evolutionary algorithms
+    'N': 50,
+    'std': 0.05,
+    'mu': 20
 }
-agent = QLearning(**d)
+agent = ReinforceBaseline(**d)
 
 def test(agent, env, n_steps, n_episodes=10):
     agent.verbose = True
-    old_eps = agent.epsilon
-    agent.epsilon = 0
+#    old_eps = agent.epsilon
+#    agent.epsilon = 0
     rewards_history = np.empty(n_episodes)
     for ep in range(n_episodes): # everything is deterministic
         obs = env.reset()
@@ -32,6 +51,7 @@ def test(agent, env, n_steps, n_episodes=10):
             env.render()
             action = agent.act(obs)
             obs, reward, done, info = env.step(action)
+            if np.random.rand() < 0.01:  print("Observation: {}".format(obs))
             cumreward += reward
             if done:
                 print("Episode finished after {} timesteps"
@@ -41,7 +61,7 @@ def test(agent, env, n_steps, n_episodes=10):
         rewards_history[ep] = cumreward
     env.close()
     agent.verbose = False
-    agent.epsilon = old_eps
+#    agent.epsilon = old_eps
     return rewards_history.mean()
 
 evaluations_history = []
@@ -50,16 +70,17 @@ rewards_history = np.empty(n_episodes)
 for ep in range(n_episodes):
     if (ep%(n_episodes//5)==0):
         print("Episode {}/{}".format(ep+1, n_episodes))
-        evaluations_history.append(test(agent, env, n_steps, n_episodes=3))
+        evaluations_history.append(test(agent, env, n_steps, n_episodes=1))
 
     obs = env.reset()
     cumreward = 0
     for step in range(n_steps):
         action = agent.act(obs)
-        old_obs = obs # tuples don't have the copy problem
+        old_obs = obs
         obs, reward, done, info = env.step(action)
+        done_time = (step == n_steps-1)
         cumreward += reward
-        agent.learn(old_obs, action, reward, obs, done)
+        agent.learn(old_obs, action, reward, obs, d=(done or done_time))
         if done:
             break
     if np.random.rand()<0.01: print("Step {}".format(step))
@@ -68,13 +89,10 @@ for ep in range(n_episodes):
 env.close()
 print("Evaluations history: {}".format(evaluations_history))
 
-#print("Task success rates: {}".format(agent.success_counter/agent.asked_counter))
-#print("Current meta policy: {}".format(agent.meta_policy()))
-
 # plotting
-env_name = env_name[:-3]
-launch_specs = 'baseline'
+launch_specs = 'baseline'+version
 file_name = "linear/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
+ensure_dir(file_name)
 suptitle = "Performance of {} on {}".format(agent.name, env_name)
 title = agent.tell_specs()
 xlabel = 'Episode'

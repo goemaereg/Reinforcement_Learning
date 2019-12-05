@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from time import time
 import random
+import os
 
 def assert_not_abstract(obj, abstract_name):
     """ Makes sure the obj isn't a instance of the abstract class calling this.
@@ -70,12 +71,17 @@ def my_timeit(f, **kwargs):
     f(**kwargs)
     return time() - init
 
+def ensure_dir(file_path):
+    directory = os.path.dirname(file_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
 def my_random_choice(v, p=None):
     """ Faster version of the np.random.choice function with probabilities """
     if p is None:
         return v[np.random.randint(len(v))]
     # else (general case)
-    assert (abs(sum(p)-1.)<1e-6); "Invalid probability vector p"
+    assert (abs(sum(p)-1.)<1e-6), "Invalid probability vector p, sum={}".format(sum(p))
     r = np.random.rand()
     i = 0
     s = p[i]
@@ -109,6 +115,16 @@ def prod(v):
         p *= e
     return p
 
+def softmax(x, T=1):
+    """Computes softmax values for each element of vector x,
+    i.e. softmax(x_i) = e^x_i / sum_j (e^x_j).
+    Substracting the max doesn't change the output but adds numerical stability.
+    T is the temperature and controls the stochasticity (high=lots low=nots)
+    """
+    x /= T
+    e_x = np.exp(x - np.max(x))
+    out = e_x / e_x.sum()
+    return out
 
 class TileCoder:
     """ Copied from https://github.com/MeepMoop/tilecoding/blob/master/tilecoding.py

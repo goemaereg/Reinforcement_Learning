@@ -87,4 +87,4 @@ title = agent.tell_specs()
 xlabel = 'Episode'
 ylabel = "Performance at {}".format(env_name)
 save_plot(rewards_history, file_name, suptitle, title, xlabel, ylabel,
-          smooth_avg=n_episodes//100, only_avg=False, xlineat=rewards_history[-1])
+          smooth_avg=n_episodes//100, only_avg=False, xlineat=env.height+env.width)
