@@ -22,6 +22,10 @@ class Agent():
             """
         raise NotImplementedError("Calling abstract method act in Agent")
 
+    def reset(self):
+        """ Resets the agent to tabula rasa, it hasn't learnt anything yet."""
+        pass
+
     def learn(s:State, a:Action, r:float, s_:State, d=None):
         """ Learns provided usual essential information,
             i.e. transition s -> s_ given action a, resulting in reward r.
@@ -36,9 +40,10 @@ class Agent():
 class Random_Agent(Agent):
     """ Acts randomly in any situation.
         """
-    def __init__(self, env_shapes):
+    def __init__(self, env_shapes, **kwargs):
         super(Random_Agent, self).__init__(env_shapes) # inits shapes
-        self.name = 'Random'
+        self.name = 'Random_Agent'
+        self.short_name = 'Rand'
 
     def act(self, obs):
         return np.random.choice(self.n_actions)
@@ -101,3 +106,20 @@ class ValueIteration(Agent):
                             for s_,r in ps[a]])
                        for a in actions]
         return actions[np.argmax(value_array)]
+
+
+class TD0(object):
+    """ Simple TD(0) algorithm."""
+
+    def __init__(self, env_shapes, gamma=0.9, learn_rate=0.1):
+        self.input_shape, self.n_actions = env_shapes
+        self.name = "ValueIteration"
+        self.V = np.zeros(self.input_shape)
+        self.gamma = gamma
+        self.learn_rate = learn_rate
+
+    def learn(self, s, r, s_, d):
+        """ TD(0) update """
+        self.V[s] += self.learn_rate*(
+            r + self.gamma*self.V[s_]*(1-d) - self.V[s]
+        )

@@ -5,6 +5,14 @@ import numpy as np
 from time import time
 import random
 import os
+import gym
+
+def classname(obj):
+    return obj.__class__.__name__
+
+def envname(env):
+    """ Name of a gym environment, without the version"""
+    return env.unwrapped.spec.id[:-3]
 
 def assert_not_abstract(obj, abstract_name):
     """ Makes sure the obj isn't a instance of the abstract class calling this.
@@ -14,10 +22,12 @@ def assert_not_abstract(obj, abstract_name):
            " as it is assumed abstract."
 
 def save_plot(l, file_name, suptitle, title, xlabel, ylabel,
-              xaxis=None, force_xaxis_0=False, smooth_avg=0, only_avg=False,
-              labels=None, xlineat=None, ylineat=None):
+              xaxis=None, force_xaxis_0=False, interval_yaxis=None,
+              smooth_avg=0, only_avg=False, labels=None, xlineat=None,
+              ylineat=None):
     """ Simply saves a plot with multiple usual arguments.
-        smooth_avg > 0 adds a smoothed curved over 2*the number of surrounding episodes given
+        smooth_avg > 0 adds a smoothed curve over 2*(the number of surrounding
+            episodes given)(moving averages)
         """
     if xaxis is None:
         if (l.ndim == 1):
@@ -49,15 +59,27 @@ def save_plot(l, file_name, suptitle, title, xlabel, ylabel,
         x1,x2,y1,y2 = plt.axis()
         plt.axis((x1,x2,0,y2))
 
+    if interval_yaxis is not None:
+        new_y1, new_y2 = interval_yaxis
+        x1,x2,y1,y2 = plt.axis()
+        plt.axis((x1,x2,new_y1,new_y2))
+
     if xlineat is not None:
         plt.axhline(xlineat, color='red', linewidth=0.5)
     if ylineat is not None:
-        plt.axvline(ylineat)
+        plt.axvline(ylineat, color='red', linewidth=0.5)
 
     file_name += '.png'
+    ensure_dir(file_name)
     plt.savefig(file_name)
     print("Saved figure to", file_name)
     plt.close()
+
+def smooth(perf, smooth_avg):
+    perf_smooth = []
+    perf_smooth += [np.mean(perf[i-smooth_avg:i+smooth_avg])
+                    for i in range(smooth_avg, len(perf)-smooth_avg)]
+    return perf_smooth
 
 def str2class(class_string):
     try:
@@ -96,18 +118,23 @@ def my_random_choice(v, p=None):
         assert len(v) == len(p), "Incorrect entry lengths v,p: {} != {}".format(len(v), len(p))
         return v[i]
 
+def allmax(a):
+    """ Returns all occurences of the max """
+    if len(a) == 0:
+        return []
+    all_ = [0]
+    max_ = a[0]
+    for i in range(1, len(a)):
+        if a[i] > max_:
+            all_ = [i]
+            max_ = a[i]
+        elif a[i] == max_:
+            all_.append(i)
+    return all_
 
 def my_argmax(v):
     """ Breaks ties randomly. """
-    maximum = v[0]
-    indexes = [0]   # indexes that maximize v
-    for i in range(1,len(v)):
-        if v[i] > maximum:
-            maximum = v[i]
-            indexes = [i]
-        elif v[i] == maximum:
-            indexes.append(i)
-    return random.choice(indexes)
+    return random.choice(allmax(v))
 
 def prod(v):
     p = 1

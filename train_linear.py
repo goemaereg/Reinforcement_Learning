@@ -9,7 +9,7 @@ import random
 np.random.seed(0)
 random.seed(0)
 
-env_name = 'CartPole-v4'
+env_name = 'MountainCar-v2'
 env = gym.make(env_name)
 version = env_name[-2:]
 env_name = env_name[:-3]
@@ -26,7 +26,7 @@ d = {
     'env_shapes': shapes,
     'explo_horizon': 1,
     'min_eps': 0.1,
-    'learn_rate': 0.0001,
+    'learn_rate': 0.001,
     'learn_rate_w': 0.001,
     'temperature': 1,
     'gamma':1,
@@ -37,7 +37,7 @@ d = {
     'std': 0.05,
     'mu': 20
 }
-agent = ReinforceBaseline(**d)
+agent = QLearning(**d)
 
 def test(agent, env, n_steps, n_episodes=10):
     agent.verbose = True
@@ -90,7 +90,7 @@ env.close()
 print("Evaluations history: {}".format(evaluations_history))
 
 # plotting
-launch_specs = 'baseline'+version
+launch_specs = 'repro_baseline'+version
 file_name = "linear/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
 ensure_dir(file_name)
 suptitle = "Performance of {} on {}".format(agent.name, env_name)

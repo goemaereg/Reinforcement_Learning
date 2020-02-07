@@ -7,12 +7,13 @@ from utils import save_plot
 
 env_name = 'FourRooms-v0'
 env = gym.make(env_name)
+env_name = env_name[:-3]
 shapes = (tuple([s.n for s in env.observation_space]), env.action_space.n)
 d = {
     'env_shapes': shapes,
     'explo_horizon': 1,
     'learn_rate': 0.05,
-    'gamma': 0.9,
+    'gamma': 1.,
     'lambda': 0.9,
     'n': 10
 }
@@ -82,9 +83,9 @@ print("Final performance: {}".format(rewards_history[-1]))
 # plotting
 launch_specs = 'baseline'
 file_name = "tabular/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
-suptitle = "Performance of {} on {}".format(agent.name, env_name[:-3])
+suptitle = "Performance of {} on {}".format(agent.name, env_name)
 title = agent.tell_specs()
 xlabel = 'Episode'
 ylabel = "Performance at {}".format(env_name)
 save_plot(rewards_history, file_name, suptitle, title, xlabel, ylabel,
-          smooth_avg=n_episodes//100, only_avg=False, xlineat=env.height+env.width)
+          smooth_avg=n_episodes//100, only_avg=False)

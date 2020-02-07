@@ -7,11 +7,11 @@ np.random.seed(0)
 import random
 random.seed(0)
 
-env = gym.make('ShortCorridor-v0')
+env = gym.make('ShortcutBlockMaze-v0')
 obs_shape = None #tuple([s.n for s in env.observation_space])
 agent = Random_Agent((obs_shape, env.action_space.n))
 n_episodes = 1
-n_steps = 200
+n_steps = 20000
 rewards_history = np.empty(n_episodes)
 for ep in range(n_episodes):
     obs = env.reset()

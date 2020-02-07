@@ -61,6 +61,10 @@ register(
     entry_point='gym_additions.envs:ShortcutMazeEnv',
     )
 register(
+    id='ShortcutBlockMaze-v0',
+    entry_point='gym_additions.envs:ShortcutBlockMazeEnv',
+    )
+register(
     id='CartPole-v2',
     entry_point='gym_additions.envs:CartPoleTileEnv',
     )
@@ -89,6 +93,10 @@ register(
     entry_point='gym_additions.envs:FourRoomsEnv',
     )
 register(
+    id='FourRoomsMin-v0',
+    entry_point='gym_additions.envs:FourRoomsMinEnv',
+    )
+register(
     id='MountainCar-v2',
     entry_point='gym_additions.envs:MountainCarTileEnv',
     )
@@ -103,4 +111,8 @@ register(
 register(
     id='ShortCorridor-v0',
     entry_point='gym_additions.envs:ShortCorridorEnv',
+    )
+register(
+    id='LocalMin-v0',
+    entry_point='gym_additions.envs:LocalMinEnv',
     )

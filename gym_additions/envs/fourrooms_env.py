@@ -6,10 +6,11 @@ import random
 class FourRoomsEnv(gym.Env):
     """ Small Gridworld environment with 4 rooms.
     Starting up left, goal in lower-right.
+    The main challenge is that the reward is sparse (1_goal)
         """
     def __init__(self):
-        roomsize = 25
-        self.height = 2*roomsize +1 # +1 is obstacle width
+        self.roomsize = 10
+        self.height = 2*self.roomsize +1 # +1 is obstacle width
         self.width = self.height
         half = self.width // 2 # shortcut
         quarter = half // 2 # shortcut
@@ -60,6 +61,56 @@ class FourRoomsEnv(gym.Env):
         s = np.zeros((self.height, self.width), dtype=int).astype(str)
         s[list(zip(*self.obstacles))] = 'X'
         s[self.terminal] = 'T'
+        s[self.start] = 'S'
+        s[self.s] = '.'
+        print(s)
+
+
+class FourRoomsMinEnv(FourRoomsEnv):
+    """ FourRoom environment, but two suboptimal goals were added in the middle
+    of the upper right and lower left rooms (on the way to the true goal)
+    Rewards: 1 for suboptimal, 100 for optimal.
+        """
+    def __init__(self):
+        super(FourRoomsMinEnv, self).__init__()
+        half = self.width // 2 # shortcut
+        quarter = half // 2 # shortcut
+        self.terminals = ((self.height-1,self.width-1), # terminal state
+                          (quarter, half+quarter),
+                          (half+quarter, quarter)
+                          )
+
+    def reset(self):
+        self.s = self.start
+        return self.s
+
+    def step(self, action):
+        """ Moves the agent in the action direction."""
+        # Next, moving according to action
+        x, y = self.moves[action]
+        if (self.s[0]+x, self.s[1]+y) not in self.obstacles:
+            # move is allowed
+            self.s = self.s[0] + x, self.s[1] + y
+
+            # Finally, setting the agent back into the grid if fallen out
+            self.s = (max(0, self.s[0]), max(0, self.s[1]))
+            self.s = (min(self.s[0], self.height - 1),
+                      min(self.s[1], self.width - 1))
+
+        done = (self.s in self.terminals)
+        if self.s == self.terminals[0]: # optimal goal
+            r = 100
+        elif self.s in self.terminals[1:]: #suboptimal goals
+            r = 1
+        else:
+            r = 0
+        return self.s, r, done, {}
+
+
+    def render(self):
+        s = np.zeros((self.height, self.width), dtype=int).astype(str)
+        s[list(zip(*self.obstacles))] = 'X'
+        s[list(zip(*self.terminals))] = 'T'
         s[self.start] = 'S'
         s[self.s] = '.'
         print(s)

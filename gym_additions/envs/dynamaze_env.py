@@ -20,6 +20,13 @@ class DynaMazeEnv(gym.Env):
                 2: (1, 0),   # down
                 3: (0, -1),  # left
                 }
+        self.moves_str = { # string versions for display
+                0: 'U', #up
+                1: 'R',   # right
+                2: 'D',   # down
+                3: 'L',  # left
+                4: 'E', # Explore (when using Explore option)
+                }
         self.terminal = (0,self.width-1) # terminal state
         self.obstacles = ( # idk why i used a tuple there but now it's done sry
             (1,2),
@@ -32,10 +39,15 @@ class DynaMazeEnv(gym.Env):
         )
         self.start = (2,0)
         # begin in start state
-        self.reset()
+        self.small_reset()
+        self.appear_obstacle = 0
+
+    def small_reset(self):
+        self.s = self.start
+        return self.s
 
     def reset(self):
-        self.s = self.start
+        self.__init__()
         return self.s
 
     def step(self, action):
@@ -67,7 +79,7 @@ class DynaMazeEnv(gym.Env):
 
 class BlockingMazeEnv(DynaMazeEnv):
     """ Obstacles form a single line but there is a short path; which disappears
-    after 1k steps (agents need to find the new path)"""
+    after some steps (agents need to find the new path)"""
 
     def __init__(self):
         DynaMazeEnv.__init__(self)
@@ -84,10 +96,11 @@ class BlockingMazeEnv(DynaMazeEnv):
             (3,6),
             (3,7) # (3,8) appears after 1k steps, blocking the short path
         )
+        self.appear_obstacle = 30000
 
     def step(self, action):
         self.t += 1
-        if self.t == 1000:
+        if self.t == self.appear_obstacle:
             l = list(self.obstacles)
             l.pop(0)
             l.append((3,8))
@@ -98,7 +111,7 @@ class BlockingMazeEnv(DynaMazeEnv):
 
 class ShortcutMazeEnv(DynaMazeEnv):
     """ Obstacles form a single line blocking the shortest path.
-    The path opens up after 3000 steps."""
+    The path opens up after some steps."""
 
     def __init__(self):
         super(ShortcutMazeEnv, self).__init__()
@@ -115,12 +128,43 @@ class ShortcutMazeEnv(DynaMazeEnv):
             (3,7),
             (3,8) # this one disappears after 3k steps, creating the shortcut
         )
+        self.appear_obstacle = 30000 # number of steps before obstacle appears
 
     def step(self, action):
         self.t += 1
-        if self.t == 3000:
+        if self.t == self.appear_obstacle:
             l = list(self.obstacles)
             l.pop(-1)
             self.obstacles = tuple(l) # keeping tuples to stay consistent
 
         return super(ShortcutMazeEnv, self).step(action)
+
+
+class ShortcutBlockMazeEnv(DynaMazeEnv):
+    """ There is a path left and right but the shortest is cut off after 1k."""
+
+    def __init__(self):
+        DynaMazeEnv.__init__(self)
+        self.t = 0
+        self.start = (5,3)
+        self.terminal = (0,self.width-1) # terminal state
+        self.obstacles = (
+            (3,1),
+            (3,2),
+            (3,3),
+            (3,4),
+            (3,5),
+            (3,6),
+            (3,7)
+            # (3,8) appears after 1k steps, blocking the short path
+        )
+        self.appear_obstacle = 30000 # number of steps before obstacle appears
+
+    def step(self, action):
+        self.t += 1
+        if self.t == self.appear_obstacle:
+            l = list(self.obstacles)
+            l.append((3,8))
+            self.obstacles = tuple(l) # keeping tuples to stay consistent
+
+        return super(ShortcutBlockMazeEnv, self).step(action)
