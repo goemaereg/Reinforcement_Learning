@@ -66,7 +66,19 @@ def single_run(agent, env, n_steps, test_every=100):
             agent.reset_eps() # now the "if" convers just QLearning
             pass
         if done:
+            old_obs = obs
             obs = env.small_reset()
+            # learn from the end -> start "DEATH" transition for the explorer
+            if isinstance(agent, ExploreOption) or isinstance(agent, ExploreAndExploit):
+                action = np.random.randint(env.action_space.n) # any action
+                #print("learning from transition {}".format((old_obs, action, explo_r, obs, False)))
+                if hasattr(agent, 'explorers'): # multi EO
+                    for fir, explorer in zip(agent.reward_functions, agent.explorers):
+                        explo_r = fir.give_reward(old_obs, action,obs) # intrinsic reward
+                        explorer.learn(old_obs, action, agent.beta*explo_r, obs) # no access to d
+                else: # normal EO
+                    explo_r = agent.reward_function.give_reward(old_obs, action, obs)
+                    agent.explorer.learn(old_obs, action, explo_r, obs, d=False)
 
     env.close()
     return np.array(steps_history)
@@ -125,7 +137,7 @@ def wrapper_print_policy(agent, env):
     if isinstance(agent, ExploreOption) or isinstance(agent, ExploreAndExploit):
         print("Exploiter:")
         policy, Q_maxes = print_policy(agent.exploiter, env)
-        if isinstance(agent.explorer, Sarsa):
+        if hasattr(agent, 'explorer') and isinstance(agent.explorer, Sarsa):
             print("Explorer:")
             policy, Q_maxes = print_policy(agent.explorer, env)
         print("Visit counts:")
@@ -162,11 +174,11 @@ d = { # inputs for the agent; ignored if not concerned
     'c_switch': 15,         # Explore algos, exploration steps
     'learn_rate': 0.1,      # most algos, learning rate
     'lrEO': 0.001,          # ExploreOption learning rate
-    'gamma': 0.99,           # all algos, MDP gamma
+    'gamma': 0.9,           # all algos, MDP gamma
     'gamma_explo': 0.9,      # Explore algos, explorer gamma
-    'ex_prob': 0.5,         # probability to explore (Explore algos)
+    'ex_prob': 0.2,         # probability to explore (Explore algos)
     'lbda': 0.99,           # lambda, traces algos
-    'beta': 1.,             # R= r_e + beta*r_i intrinsic reward algos
+    'beta': 0.1,             # R= r_e + beta*r_i intrinsic reward algos
     'kappa': 1e-8,          # DynaQ+ explo param
     'epsilon': 0.1,         # NOT the eps-greedy epsilon. For Delayed_QLearning.
     'delta': 0.1,           # Delayed_QLearning
@@ -176,25 +188,31 @@ d = { # inputs for the agent; ignored if not concerned
     'exploiter_class': QLearning,           # Explore algos
     'explorer_class': QLearning_Optimistic, # Explore algos
     'reward_function': Inverse_sqrt,       # Explore algos
+    'explorer_classes': [QLearning_Optimistic,
+                         QLearning,
+                         QLearning_Optimistic], # Explore algos
+    'reward_functions': [Inverse_sqrt,
+                         Negative_sqrt,
+                         Successor_Rep],       # Explore algos
 }
+print(d)
 
 n_episodes = 10
 test_every = 100 # periodicity of testing during training (in steps)
 n_steps = 1000*100 # here 1000 is therefore the number of points on the curve
-n_runs = 50
+n_runs = 20
 
-agent = QLearning_VC(**d)
+agent = ExploreOption_Multi(**d)
 #spectrum = ('c_switch', [1,3,5,7,10,15,20,30,60,3600])
-#spectrum = ('c_switch', [7,10,15,20]) # short baseline
+spectrum = ('c_switch', [7,10,15,20]) # short baseline
 #spectrum = ('c_switch', [15]) # so I don't have to change shit
-spectrum = ('beta', [0.1,0.5,0.75,1, 1.25, 1.5])
-#spectrum = ('beta', [0.01,0.05,0.075,0.1, 0.125, 0.15])
-#spectrum = ('beta', [0.001,0.005,0.0075,0.01, 0.0125, 0.015])
-#spectrum = ('beta', [0.125])
-#spectrum = ('ex_prob', [0.2,0.35,0.5,0.75,1])
+#spectrum = ('beta', [0, 0.0001, 0.005, 0.0075, 0.009, 0.01])
+#spectrum = ('beta', [0, 0.001, 0.005, 0.01, 0.05, 0.075, 0.1])
+#spectrum = ('explo_horizon', [5000])
+#spectrum = ('ex_prob', [0,0.2,0.35,0.5,0.75,1])
 #spectrum = ('min_eps', [0,0.01,0.1,0.2,0.3,0.5,1])
 #spectrum = ('gamma_explo', [0.5,0.8,0.9,0.99,1])
-#spectrum = ('lrEO', [0,0.001,0.005,0.01,0.02,0.05,0.1])
+#spectrum = ('lrEO', [0,0.001,0.1])
 #spectrum = ('delta', [0.001,0.01,0.1])
 #spectrum = ('eps1', [0.001,0.01,0.1,0.5])
 #spectrum = ('m', [5,10,25,50]) # short baseline
@@ -202,17 +220,17 @@ spectrum = ('beta', [0.1,0.5,0.75,1, 1.25, 1.5])
 #spectrum = ('kappa', [1e-7, 5e-7, 1e-6])
 
 agents = [
-    ExploreOption(**d),
-    TreeBackup(**d),
-    EligibilityTraces(**d),
     QLearning(**d),
+    QLearning_Optimistic(**d),
+    QLearning_VC(**d),
+    ExploreOption2(**d)
 ]
 optimal_perf = draw_optimal_perf(n_steps, env, test_every)
 
 ## LAUNCH TRAINING -------------------------------------------------------------
 #perf = multiple_runs(agent, env, n_runs, n_steps, test_every)
 perf = run_spectrum(agent, env, spectrum, n_runs, n_steps, test_every, smoothed=False)
-#perf = multiple_agents(agents, env, n_runs, n_episodes, n_steps, test_every)
+#perf = multiple_agents(agents, env, n_runs, n_steps, test_every)
 
 perf = np.vstack([optimal_perf, perf]) # adding perfect perf comparison
 
@@ -221,16 +239,19 @@ wrapper_print_policy(agent, env)
 print(test_agent(agent, env, n_episodes, n_steps))
 
 ## PLOTTING --------------------------------------------------------------------
-launch_specs = '{}_beta_g.99_2'.format(agent.short_name) # name of output plot file
+launch_specs = '{}_p0.2_20runs'.format(agent.short_name) # name of output plot file
 #file_name = "tabular/perf_plots/{}/{}/{}".format(env_name, classname(agent), launch_specs)
 file_name = "tabular/perf_plots/{}/{}".format(env_name, launch_specs)
-suptitle = "{} on {}".format(classname(agent), env_name)
-#suptitle = "Agents comparison on {}".format(env_name)
-title = agent.tell_specs()
+#suptitle = "{} on {}".format(classname(agent), env_name)
+suptitle = "Three Explorers (inv_sqrt, neg_sqrt, succ_rep)".format(classname(agent), env_name)
+#suptitle = "Agent comparison on {}".format(env_name)
+#title = agent.tell_specs()
+title = 'lr=0.1, lrEO=0.001, eps=0.1, g=0.9, p=0.5'
 xlabel = '{} Time steps'.format(test_every)
 ylabel = "Steps to goal".format(env_name)
 labels = ['Optimal']
 #labels += [agent.name]
 labels += ['{}={}'.format(spectrum[0], value) for value in spectrum[1]]
+#labels += ['QL', 'QL_O', 'QL+VC', 'QL+EO']
 save_plot(perf, file_name, suptitle, title, xlabel, ylabel, ylineat=env.appear_obstacle//test_every,
           smooth_avg=0, only_avg=False, labels=labels)

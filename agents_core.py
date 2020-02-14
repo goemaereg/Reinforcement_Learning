@@ -26,7 +26,7 @@ class Agent():
         """ Resets the agent to tabula rasa, it hasn't learnt anything yet."""
         pass
 
-    def learn(s:State, a:Action, r:float, s_:State, d=None):
+    def learn(self, s:State, a:Action, r:float, s_:State, d=None):
         """ Learns provided usual essential information,
             i.e. transition s -> s_ given action a, resulting in reward r.
             Optional d indicates whether the state is terminal.

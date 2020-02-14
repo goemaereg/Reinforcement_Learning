@@ -140,8 +140,6 @@ class ExploreOption(Agent):
         self.exploiter.learn(s,a,r,s_,d)
         self.visit_counts[s_] += 1 # For display only now
         explo_r = self.reward_function.give_reward(s,a,s_) # intrinsic reward
-        if np.random.rand() < 0.00001:
-            print("received explo reward {}".format(explo_r))
         self.explorer.learn(s, a, self.beta*explo_r, s_) # no access to d
 
         ## Training the explore option
@@ -229,6 +227,179 @@ class ExploreOption2(ExploreOption):
         """ Specifies the specs of the agent (hyperparameters mainly) """
         return "lr={}, lrEO={}, gam={}, c_switch={}, p={}, agts:{}&{}"\
                .format(self.learn_rate, self.lrEO, self.gamma, self.c_switch, self.ex_prob, self.exploiter.short_name, self.explorer.short_name)
+
+
+class ExploreOption_Multi(ExploreOption2):
+    """ Multiple heads for the ExploreOptions, trained on multiple f_ir.
+    """
+
+    def __init__(self, exploiter_class, explorer_classes, lrEO=2.5e-4,
+                 gamma_explo=0.9, min_eps_explo=0.25, c_switch=10, beta=1,
+                 ex_prob=0.5, reward_functions=[Negative_sqrt], **kwargs):
+        ## Name init
+        self.name = 'ExploreOption_Multi'
+        self.short_name = 'XOptM'
+
+        ## Shapes init
+        Agent.__init__(self,**kwargs) # inits shapes
+        self.n_options = len(reward_functions)
+        print("Using {} options".format(self.n_options))
+        env_shapes_meta = (self.input_shape, self.n_actions+self.n_options)
+        env_shapes_explo = (self.input_shape, self.n_actions)
+
+        ## Miscellaneous hyperparameters.
+        self.lrEO = lrEO # learn rate Explore Option
+        self.c_switch = c_switch
+        self.ex_prob = ex_prob
+        kwargs['explo_horizon'] = 1 # no annealing needed in ExploreOption_Multi
+        self.learn_rate = kwargs['learn_rate']
+        self.gamma = kwargs['gamma']
+        self.beta = beta # fundamentally USELESS parameter to scale the Explorer's Q values.
+        self.gamma_explo = gamma_explo
+
+        ## Initializing Exploiter
+        kwargs['env_shapes'] = env_shapes_meta
+        self.exploiter = exploiter_class(**kwargs)
+
+        ## Initializing Explorers and associated reward functions
+        kwargs['env_shapes'] = env_shapes_explo
+        kwargs['min_eps'] = min_eps_explo
+        kwargs['gamma'] = self.gamma_explo
+        kwargs['optimistic_value'] = self.beta/(1-self.gamma_explo)
+        self.explorers = []
+        self.reward_functions = []
+        for i,fir in enumerate(reward_functions):
+            self.reward_functions.append(fir(env_shapes_explo))
+            self.explorers.append(explorer_classes[i](**kwargs))
+            print(fir, explorer_classes[i])
+        ## Variables initialization
+        self.test_mode = False # i.e. we're in training mode by default
+        self.reset()
+
+    def min_eps_explo():
+        doc = "The min_eps_explo property."
+        def fget(self):
+            return self._min_eps_explo
+        def fset(self, value):
+            self._min_eps_explo = value
+            for explorer in self.explorers:
+                explorer.min_eps_explo = value
+        def fdel(self):
+            del self._min_eps_explo
+        return locals()
+    min_eps_explo = property(**min_eps_explo())
+
+    def reset(self):
+        self.step = 0
+        self.verbose = False
+        self.explored = False # whether the last action was by an Explorer
+        self.explored_with = None # number of the option lused for exploration
+        self.exploring = 0 # explorer is acting (goes up to c_switch)
+        self.explo_rewards = [] # list of rewards during exploration (for option training)
+        self.exploiter.reset()
+        self.visit_counts = np.zeros(self.input_shape) # display purposes
+        for explorer, fir in zip(self.explorers, self.reward_functions):
+            explorer.reset()
+            fir.reset()
+
+    def exploiter_act(self, obs):
+        """ epsilon greedy with a twist: Explore is chosen with proba ex_prob"""
+        if np.random.rand() < self.epsilon:
+            if np.random.rand() < self.ex_prob:
+                action = self.n_actions + np.random.randint(self.n_options) # random explore option
+            else:
+                action = np.random.randint(self.n_actions) # a primitive action
+        else:
+            action = my_argmax(self.exploiter.Qtable[obs])
+
+        return action
+
+    def exploiter_act_no_opt(self, obs):
+        """ Only to test the usefulness of the option choice.
+        Removes the option from the choices of the exploiter in greedy """
+        if np.random.rand() < self.epsilon:
+            print("acting randomly... eps={}".format(self.epsilon))
+            if np.random.rand() < self.ex_prob:
+                action = self.n_actions # explore option
+                action = self.n_actions + np.random.randint(self.n_options) # random explore option
+                print("acting randomly")
+            else:
+                action = np.random.randint(self.n_actions) # a primitive action
+        else:
+            action = my_argmax(self.exploiter.Qtable[obs][:-self.n_options]) # cannot choose option on purpose
+
+        return action
+
+    def _act_no_option(self, obs):
+        """ Epsilon greedy on the primitive actions. """
+        if np.random.rand() < self.exploiter.epsilon:
+            return np.random.randint(self.n_actions)
+        else:
+            action = my_argmax(self.exploiter.Qtable[obs][:-self.n_options]) # no explore option
+            return action
+
+
+    def act(self, obs):
+        """ If the Explorer isn't on, the Meta acts. If it chooses the explore
+        action, the Explorer takes over for the next c_switch steps """
+        # obs = tuple(obs) # to access somewhere in the table
+        if self.test_mode:
+            action = self._act_no_option(obs)
+            return action
+
+        if self.exploring == 0: # meta acts
+            if np.random.rand() <0.00001: print("\tMeta Q values: {}".format(self.exploiter.Qtable[obs]))
+            action = self.exploiter_act(obs) # with adustments for options
+            #action = self.exploiter_act_no_opt(obs) # for SCIENCE
+            self.explored = False
+
+            if action >= self.n_actions: # last action = explore
+                n_option = action - self.n_actions
+                self.obs_in_explo = obs # observation from which we explored
+                self.exploring = self.c_switch
+                self.explored_with = n_option
+
+        if self.exploring > 0: # not 'else' since 'exploring' changes in if
+            explorer = self.explorers[self.explored_with]
+            action = explorer.act(obs)
+            self.explored = True # last action is an exploration
+            self.exploring -= 1
+
+        return action
+
+    def learn(self, s, a, r, s_, d=False):
+        """ Updates the Qtable based on the s,a,r,s_transition.
+        Updates the annealing epsilon.
+        Here the reward r has to be a scalar """
+        ## outputs r, gamma unless option:
+        r, discount = self.exploiter._reward_seq_discounter(r)
+
+        ## Training both agents on- or off-policy
+        self.exploiter.learn(s,a,r,s_,d)
+        self.visit_counts[s_] += 1 # For display only now
+        for fir, explorer in zip(self.reward_functions, self.explorers):
+            explo_r = fir.give_reward(s,a,s_) # intrinsic reward
+            explorer.learn(s, a, self.beta*explo_r, s_) # no access to d
+            if np.random.rand() < 0.00001:
+                print("received explo reward {}".format(explo_r))
+
+        ## Training the explore option
+        if d: # stop exploring and update if the episode terminates
+            self.exploring = 0
+
+        if self.explored:
+            self.explo_rewards += [r]
+            if self.exploring == 0: # finished exploration on last action
+
+                self.exploiter.learn_rate = self.lrEO
+                self.exploiter.learn(self.obs_in_explo, self.n_actions+self.explored_with, self.explo_rewards, s_, d)
+                self.exploiter.learn_rate = self.learn_rate
+                self.explo_rewards = []
+
+    def tell_specs(self) -> str:
+        """ Specifies the specs of the agent (hyperparameters mainly) """
+        return "lr={}, lrEO={}, gam={}, c_switch={}, p={}, agt:{}"\
+               .format(self.learn_rate, self.lrEO, self.gamma, self.c_switch, self.ex_prob, self.exploiter.short_name)
 
 
 class ExploreAndExploit(Agent):
@@ -343,7 +514,8 @@ class QLearning_VC(QLearning):
         self.visit_counts[s_] += 1 # for display only
         #explo_r = 1/np.sqrt(self.visit_counts[s_])
         explo_r = self.reward_function.give_reward(s,a,s_)
-        super(QLearning_VC, self).learn(s,a, r+self.beta*explo_r ,s_,d)
+        R = r + self.beta*explo_r
+        super(QLearning_VC, self).learn(s,a,R,s_,d)
 
 class Delayed_QLearning(Agent):
     """ Improvement on QLearning to perform averaging updates after waiting for

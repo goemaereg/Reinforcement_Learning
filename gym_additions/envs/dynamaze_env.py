@@ -26,6 +26,8 @@ class DynaMazeEnv(gym.Env):
                 2: 'D',   # down
                 3: 'L',  # left
                 4: 'E', # Explore (when using Explore option)
+                5: 'E', # Explore (when using Explore option)
+                6: 'E', # Explore (when using Explore option)
                 }
         self.terminal = (0,self.width-1) # terminal state
         self.obstacles = ( # idk why i used a tuple there but now it's done sry

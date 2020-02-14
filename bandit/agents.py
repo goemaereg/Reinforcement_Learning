@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 from agents_core import Agent
 from utils import my_random_choice
