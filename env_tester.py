@@ -3,12 +3,13 @@ import gym_additions
 import json
 from agents_core import Random_Agent
 import numpy as np
-np.random.seed(0)
+np.set_printoptions(threshold=500, linewidth=500, edgeitems=250)
+#np.random.seed(0)
 import random
-random.seed(0)
+#random.seed(0)
 
-env = gym.make('ShortcutBlockMaze-v0')
-obs_shape = None #tuple([s.n for s in env.observation_space])
+env = gym.make('FourRoomsGoalBig-v0')
+obs_shape = tuple([s.n for s in env.observation_space])
 agent = Random_Agent((obs_shape, env.action_space.n))
 n_episodes = 1
 n_steps = 20000

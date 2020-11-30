@@ -97,6 +97,14 @@ register(
     entry_point='gym_additions.envs:FourRoomsMinEnv',
     )
 register(
+    id='FourRoomsGoal-v0',
+    entry_point='gym_additions.envs:FourRoomsGoalEnv',
+    )
+register(
+    id='FourRoomsGoalBig-v0',
+    entry_point='gym_additions.envs:FourRoomsGoalBigEnv',
+    )
+register(
     id='MountainCar-v2',
     entry_point='gym_additions.envs:MountainCarTileEnv',
     )
@@ -115,4 +123,8 @@ register(
 register(
     id='LocalMin-v0',
     entry_point='gym_additions.envs:LocalMinEnv',
+    )
+register(
+    id='Tractor-v0',
+    entry_point='gym_additions.envs:TractorEnv',
     )

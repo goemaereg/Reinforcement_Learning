@@ -22,6 +22,13 @@ class Intrinsic_Reward_Function(object):
         It also contains whatever updates on the internal variables that we want. """
         raise NotImplementedError("Accessing give_reward method in abstract class")
 
+class Random_Reward(Intrinsic_Reward_Function):
+    """ A function that outputs a random intrinsic reward."""
+
+    def give_reward(self, s:State, a:Action, s_:State) -> float:
+        """ Sample from a U(-1,1) (arbitrary) """
+        return 2*np.random.rand() -1
+
 
 class Inverse_sqrt(Intrinsic_Reward_Function):
     """ Visit-count based Intrinsic_Reward_Function, the reward is simply

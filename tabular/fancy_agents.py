@@ -140,6 +140,8 @@ class ExploreOption(Agent):
         self.exploiter.learn(s,a,r,s_,d)
         self.visit_counts[s_] += 1 # For display only now
         explo_r = self.reward_function.give_reward(s,a,s_) # intrinsic reward
+        if np.random.rand() < 0.0001:
+            print("got reward {}".format(explo_r))
         self.explorer.learn(s, a, self.beta*explo_r, s_) # no access to d
 
         ## Training the explore option
@@ -209,7 +211,7 @@ class ExploreOption2(ExploreOption):
         if self.exploring == 0: # meta acts
             if np.random.rand() <0.00001: print("\tMeta Q values: {}".format(self.exploiter.Qtable[obs]))
             action = self.exploiter_act(obs)
-            #action = self.exploiter_act_no_opt(obs)
+            # action = self.exploiter_act_no_opt(obs)
             self.explored = False
 
             if action == self.n_actions: # last action = explore
@@ -350,7 +352,6 @@ class ExploreOption_Multi(ExploreOption2):
         if self.exploring == 0: # meta acts
             if np.random.rand() <0.00001: print("\tMeta Q values: {}".format(self.exploiter.Qtable[obs]))
             action = self.exploiter_act(obs) # with adustments for options
-            #action = self.exploiter_act_no_opt(obs) # for SCIENCE
             self.explored = False
 
             if action >= self.n_actions: # last action = explore

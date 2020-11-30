@@ -114,3 +114,109 @@ class FourRoomsMinEnv(FourRoomsEnv):
         s[self.start] = 'S'
         s[self.s] = '.'
         print(s)
+
+
+class FourRoomsGoalEnv(gym.Env):
+    """ Goal-oriented version of the 4Rooms
+        """
+    def __init__(self, **kawrgs):
+        self.roomsize = 3 # very small env
+        self.height = 2*self.roomsize +1 # +1 is obstacle width
+        self.width = self.height
+        half = self.width // 2 # door
+        quarter = half // 2 # door
+        self.action_space = spaces.Discrete(4)
+        self.observation_space = spaces.Tuple((
+                # input state
+                spaces.Discrete(self.height),
+                spaces.Discrete(self.width),
+                # goal state
+                spaces.Discrete(self.height),
+                spaces.Discrete(self.width)
+            ))
+        self.moves = { # primitive moves
+                0: (-1, 0),  # up
+                1: (0, 1),   # right
+                2: (1, 0),   # down
+                3: (0, -1),  # left
+                }
+        horizontal  = [[i, half] for i in range(self.width)]
+        vertical    = [[half, i] for i in range(self.height)]
+        self.obstacles = horizontal + vertical
+        # now opening the 4 passages
+        for state in [[quarter,half], [half,quarter], [half,self.height-1-quarter], [self.height-1-quarter,half]]:
+            self.obstacles.remove(state)
+        self.reset() # choose start and goal
+
+    def reset(self):
+        while True:
+            self.start = (np.random.randint(0,self.height), np.random.randint(0,self.width))
+            if not self.start in self.obstacles:
+                break
+        self.s = self.start
+
+        while True:
+            self.goal = (np.random.randint(0,self.height), np.random.randint(0,self.width))
+            if not self.goal in self.obstacles+[self.s]:
+                break
+
+        return (*self.s, *self.goal)
+
+    def step(self, action):
+        """ Moves the agent in the action direction."""
+        # Next, moving according to action
+        x, y = self.moves[action]
+        if (self.s[0]+x, self.s[1]+y) not in self.obstacles:
+            # move is allowed
+            self.s = self.s[0] + x, self.s[1] + y
+
+            # Finally, setting the agent back into the grid if fallen out
+            self.s = (max(0, self.s[0]), max(0, self.s[1]))
+            self.s = (min(self.s[0], self.height - 1),
+                      min(self.s[1], self.width - 1))
+
+
+        done = (self.s == self.goal)
+        return (*self.s, *self.goal), int(done), done, {}
+
+
+    def render(self):
+        s = np.zeros((self.height, self.width), dtype=int).astype(str)
+        s[list(zip(*self.obstacles))] = 'X'
+        s[self.goal] = 'G'
+        s[self.start] = 'S'
+        s[self.s] = '.'
+        print(s)
+
+
+class FourRoomsGoalBigEnv(FourRoomsGoalEnv):
+    """ Goal-oriented version of the 4Rooms; bigger rooms.
+        """
+    def __init__(self):
+        self.roomsize = 10 # bigger env
+        self.height = 2*self.roomsize +1 # +1 is obstacle width
+        self.width = self.height
+        half = self.width // 2 # door
+        quarter = half // 2 # door
+        self.action_space = spaces.Discrete(4)
+        self.observation_space = spaces.Tuple((
+                # input state
+                spaces.Discrete(self.height),
+                spaces.Discrete(self.width),
+                # goal state
+                spaces.Discrete(self.height),
+                spaces.Discrete(self.width)
+            ))
+        self.moves = { # primitive moves
+                0: (-1, 0),  # up
+                1: (0, 1),   # right
+                2: (1, 0),   # down
+                3: (0, -1),  # left
+                }
+        horizontal  = [[i, half] for i in range(self.width)]
+        vertical    = [[half, i] for i in range(self.height)]
+        self.obstacles = horizontal + vertical
+        # now opening the 4 passages
+        for state in [[quarter,half], [half,quarter], [half,self.height-1-quarter], [self.height-1-quarter,half]]:
+            self.obstacles.remove(state)
+        self.reset() # choose start and goal

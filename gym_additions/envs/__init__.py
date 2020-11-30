@@ -14,3 +14,4 @@ from gym_additions.envs.fourrooms_env import *    # noqa
 from gym_additions.envs.mountaincar_env import *    # noqa
 from gym_additions.envs.shortcorridor_env import *    # noqa
 from gym_additions.envs.localmin_env import *    # noqa
+from gym_additions.envs.tractor_env import *    # noqa

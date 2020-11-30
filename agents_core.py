@@ -108,6 +108,49 @@ class ValueIteration(Agent):
         return actions[np.argmax(value_array)]
 
 
+class ValueIterationV2(Agent):
+    """ Value Iteration for many dimensions."""
+
+    def __init__(self, env):
+        self.env = env # environment we're trying to solve
+        self.input_shape = [space.n for space in env.observation_space]
+        self.env_shapes = (*self.input_shape, env.action_space.n)
+        self.name = "ValueIterationV2"
+        self.V = np.zeros(self.input_shape)
+        print("shape: {}".format(self.V.shape))
+        # self.V[self.env.terminal_states()] = 0
+        self.gamma = 0.9
+
+    def _state_value_array(self, s):
+        """
+        Returns the ValueIteration backup values for all actions in this state
+        """
+        actions = self.env.legal_actions(s)
+        ps = {a:self.env.p(s,a) for a in actions} # p(s',r | s,.) as dictionaries
+        # print("State {} with dictionaries {}".format(s, ps))
+        value_array = np.empty(len(actions))
+        for a_i,a in enumerate(actions):
+            sigma = 0 # sum over s_,r dynamics
+            for s_, r in ps[a]:
+                if self.env._no_obstacle_in(s_):
+                    sigma += ps[a][s_,r]*(r+self.gamma*self.V[s_])
+                else:
+                    sigma += ps[a][s_,r]*r
+            value_array[a_i] = sigma
+
+        return value_array
+
+    def learn(self, s:State):
+        """ Value Iteration update """
+        value_array = self._state_value_array(s)
+        self.V[s] = max(value_array)
+
+    def act(self, s):
+        actions = self.env.legal_actions(s)
+        value_array = self._state_value_array(s)
+        return actions[np.argmax(value_array)]
+
+
 class TD0(object):
     """ Simple TD(0) algorithm."""
 
