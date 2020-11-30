@@ -5,7 +5,7 @@ from tabular.agents import *
 from tabular.hierarchical import *
 from utils import save_plot
 
-env_name = 'FourRooms-v0'
+env_name = 'FourRoomsGoal-v0'
 env = gym.make(env_name)
 shapes = (tuple([s.n for s in env.observation_space]), env.action_space.n)
 d = {
@@ -17,7 +17,6 @@ d = {
     'lambda': 0.9,
     'n': 10
 }
-# agent = QLearning(**d)
 
 n_episodes = 3000
 n_steps = 150000 # virually never
@@ -52,12 +51,13 @@ def smooth(perf, smooth_avg):
                     for i in range(smooth_avg, len(perf)-smooth_avg)]
     return perf_smooth
 
+# agent = QLearning(**d)
 agents = [
     #MonteCarlo(**d),
     #EligibilityTraces(**d),
-    #TreeBackup(**d),
-    #QLearning(**d),
-    ExploreOption(**d),
+    # TreeBackup(**d),
+    QLearning(**d),
+    # ExploreOption(**d),
     #Sarsa(**d)
     ]
 if len(agents) == 1:
@@ -65,7 +65,7 @@ if len(agents) == 1:
     perf = test_agent(agent, env, n_episodes, n_steps)
     print("Final performance: {}".format(perf[-1]))
     # plotting
-    launch_specs = 'treebackup{}'.format(env.roomsize)
+    launch_specs = 'perf{}'.format(env.roomsize)
     file_name = "tabular/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
     suptitle = "{} performance on {}{}".format(agent.name, env_name[:-3], env.roomsize)
     title = agent.tell_specs()
