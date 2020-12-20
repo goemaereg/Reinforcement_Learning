@@ -23,6 +23,17 @@ n_episodes = 3000
 #n_steps = 150000 # virually never
 n_steps = 120 # episode horizon
 
+# plot scales
+n_plot_xscale = (0, 50000)
+n_plot_yscale = (0, 150)
+
+# replay buffer size
+n_replaybuffer_size = 1*1024
+# number of optimization cycles within an episode
+n_minibatch_cycles = 4 
+# sample batch size for each optimization cycle
+n_batchsize = 16 
+
 
 from collections import deque
 
@@ -63,7 +74,7 @@ def env_goal(obj):
 
 def test_agent(agent, env, n_episodes, n_steps):
     """ Returns the steps_history of the agent"""
-    replay_buffer = ReplayBuffer(1*1024)
+    replay_buffer = ReplayBuffer(n_replaybuffer_size)
     # Training phase
     steps_history = np.empty(n_episodes)
     for ep in range(n_episodes):
@@ -108,11 +119,10 @@ def test_agent(agent, env, n_episodes, n_steps):
             replay_buffer.push(*transition)
 
         # learn on N cycles of minibatches of size B
-        N = 4 # number of optimization steps
-        B = 16 # batch size
-        for i in range(N):
+        for i in range(n_minibatch_cycles):
             # Sample a minibatch B from the replay buffer
-            transitions = replay_buffer.sample(B)
+            n_samples = min(n_batchsize, len(replay_buffer))
+            transitions = replay_buffer.sample(n_samples)
             # Perform one step of learning using the agent and the minibatch
             for transition in transitions:
                 agent.learn(*transition)
@@ -139,11 +149,17 @@ if len(agents) == 1:
     # plotting
     launch_specs = 'perf{}'.format(env.roomsize)
     file_name = "tabular_her/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
-    suptitle = "{} performance on {}{}".format(agent.name, env_name[:-3], env.roomsize)
+    suptitle = "{} HER performance on {}{}".format(agent.name, env_name[:-3], env.roomsize)
     title = agent.tell_specs()
     xlabel = 'Episode'
     ylabel = "Performance at {}".format(env_name)
+    xaxis = np.empty_like(perf)
+    total = 0
+    for i in range(perf.size):
+        total += perf[i]
+        xaxis[i] = total
     save_plot(perf, file_name, suptitle, title, xlabel, ylabel,
+              xaxis=xaxis, interval_xaxis=n_plot_xscale, interval_yaxis=n_plot_yscale,
               smooth_avg=n_episodes//100, only_avg=True)
 
 else:
@@ -162,7 +178,7 @@ else:
     launch_specs = 'comp'
     #file_name = "tabular/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
     file_name = "tabular_her/perf_plots/{}/{}".format(env_name, launch_specs)
-    suptitle = "Agent Performance Comparison on {}{}".format(env_name[:-3], env.roomsize)
+    suptitle = "Agent HER Performance Comparison on {}{}".format(env_name[:-3], env.roomsize)
     title = agent.tell_specs()
     xlabel = 'Episode'
     ylabel = "Performance at {}".format(env_name)

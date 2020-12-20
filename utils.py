@@ -22,7 +22,7 @@ def assert_not_abstract(obj, abstract_name):
            " as it is assumed abstract."
 
 def save_plot(l, file_name, suptitle, title, xlabel, ylabel,
-              xaxis=None, force_xaxis_0=False, interval_yaxis=None,
+              xaxis=None, force_xaxis_0=False, interval_xaxis=None, interval_yaxis=None,
               smooth_avg=0, only_avg=False, labels=None, xlineat=None,
               ylineat=None):
     """ Simply saves a plot with multiple usual arguments.
@@ -53,11 +53,16 @@ def save_plot(l, file_name, suptitle, title, xlabel, ylabel,
         l_smooth = [None for _ in range(smooth_avg)]
         l_smooth += [np.mean(l[i-smooth_avg:i+smooth_avg])
                      for i in range(smooth_avg, len(l)-smooth_avg)]
-        plt.plot(l_smooth)
+        plt.plot(xaxis[: len(l)-smooth_avg], l_smooth)
 
     if force_xaxis_0:
         x1,x2,y1,y2 = plt.axis()
         plt.axis((x1,x2,0,y2))
+
+    if interval_xaxis is not None:
+        new_x1, new_x2 = interval_xaxis
+        x1,x2,y1,y2 = plt.axis()
+        plt.axis((new_x1,new_x2,y1,y2))
 
     if interval_yaxis is not None:
         new_y1, new_y2 = interval_yaxis

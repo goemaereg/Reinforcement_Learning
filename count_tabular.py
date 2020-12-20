@@ -20,6 +20,10 @@ d = {
 
 n_episodes = 3000
 n_steps = 150000 # virually never
+# plot scales
+n_plot_xscale = (0, 50000)
+n_plot_yscale = (0, 150)
+
 
 def test_agent(agent, env, n_episodes, n_steps):
     """ Returns the steps_history of the agent"""
@@ -71,7 +75,13 @@ if len(agents) == 1:
     title = agent.tell_specs()
     xlabel = 'Episode'
     ylabel = "Performance at {}".format(env_name)
+    xaxis = np.empty_like(perf)
+    total = 0
+    for i in range(perf.size):
+        total += perf[i]
+        xaxis[i] = total
     save_plot(perf, file_name, suptitle, title, xlabel, ylabel,
+              xaxis=xaxis, interval_xaxis=n_plot_xscale, interval_yaxis=n_plot_yscale,
               smooth_avg=n_episodes//100, only_avg=True)
 
 else:
