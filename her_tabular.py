@@ -22,6 +22,8 @@ d = {
 n_episodes = 3000
 #n_steps = 150000 # virually never
 n_steps = 120 # episode horizon
+# subtrajectory length
+n_subtraject_steps = 8
 
 # plot scales
 n_plot_xscale = (0, 50000)
@@ -30,9 +32,9 @@ n_plot_yscale = (0, 150)
 # replay buffer size
 n_replaybuffer_size = 1*1024
 # number of optimization cycles within an episode
-n_minibatch_cycles = 4 
+n_minibatch_cycles = 2 
 # sample batch size for each optimization cycle
-n_batchsize = 16 
+n_batchsize = 8 
 
 
 from collections import deque
@@ -77,6 +79,7 @@ def test_agent(agent, env, n_episodes, n_steps):
     replay_buffer = ReplayBuffer(n_replaybuffer_size)
     # Training phase
     steps_history = np.empty(n_episodes)
+    xaxis = np.empty(n_episodes)
     for ep in range(n_episodes):
         if (ep%(n_episodes//5)==0):
             print("Episode {}/{}".format(ep+1, n_episodes))
@@ -90,8 +93,7 @@ def test_agent(agent, env, n_episodes, n_steps):
             action = agent.act(obs)
             # execute action and observe new state
             new_obs, reward, done, _ = env.step(action)
-            # use a binary and sparse reward: r(s, a, g) = -|fg(s) == 0|
-            #reward = - int(done == False)
+            # use a binary and sparse reward from the environment: int(done)
             # store transition in replay buffer
             transition = (obs, action, reward, new_obs, done)
             replay_buffer.push(*transition)
@@ -104,13 +106,18 @@ def test_agent(agent, env, n_episodes, n_steps):
 
             steps_history[ep] = step
 
-        # sample a set of additional goals for replay: # S(so, s1, ..., sT) = m(sT) = sT
-        _, _, _, new_obs, _ = transition_history[-1]
-        sampled_goal = env_state(new_obs)
-        for obs, action, _, new_obs, _ in transition_history:
+        index = 0
+        for step in range(len(transition_history)):
+            # sample a set of additional goals for replay in this sub trajectory: # S(so, s1, ..., sT) = m(sT) = sT
+            goal_index = (((step // n_subtraject_steps) + 1) * n_subtraject_steps) - 1
+            goal_index = min(goal_index, len(transition_history) - 1)
+            _, _, _, goal_obs, _ = transition_history[goal_index]
+            sampled_goal = env_state(goal_obs)
+            # current transition step
+            obs, action, _, new_obs, _ = transition_history[step]
             state = env_state(obs)
             new_state = env_state(new_obs)
-            # use a binary and sparse reward: r(s, a, g) = -|fg(s) == 0|
+            # use a binary and sparse reward if new goal reached
             done = (state == sampled_goal)
             #reward = - int(done == False)
             reward = int(done)
@@ -119,6 +126,10 @@ def test_agent(agent, env, n_episodes, n_steps):
             replay_buffer.push(*transition)
 
         # learn on N cycles of minibatches of size B
+        if ep > 0:
+            xaxis[ep] = xaxis[ep - 1]
+        else:
+            xaxis[ep] = 0
         for i in range(n_minibatch_cycles):
             # Sample a minibatch B from the replay buffer
             n_samples = min(n_batchsize, len(replay_buffer))
@@ -127,10 +138,12 @@ def test_agent(agent, env, n_episodes, n_steps):
             for transition in transitions:
                 agent.learn(*transition)
 
+            xaxis[ep] += n_samples 
+
         if ep==0:
             print("First trial in {} steps".format(step))
     env.close()
-    return steps_history[1:] # first is purely random
+    return xaxis[1:], steps_history[1:] # first is purely random
 
 
 def smooth(perf, smooth_avg):
@@ -144,20 +157,15 @@ agents = [
     ]
 if len(agents) == 1:
     agent = agents[0]
-    perf = test_agent(agent, env, n_episodes, n_steps)
+    xaxis, perf = test_agent(agent, env, n_episodes, n_steps)
     print("Final performance: {}".format(perf[-1]))
     # plotting
     launch_specs = 'perf{}'.format(env.roomsize)
     file_name = "tabular_her/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
     suptitle = "{} HER performance on {}{}".format(agent.name, env_name[:-3], env.roomsize)
     title = agent.tell_specs()
-    xlabel = 'Episode'
+    xlabel = 'Optimisation steps'
     ylabel = "Performance at {}".format(env_name)
-    xaxis = np.empty_like(perf)
-    total = 0
-    for i in range(perf.size):
-        total += perf[i]
-        xaxis[i] = total
     save_plot(perf, file_name, suptitle, title, xlabel, ylabel,
               xaxis=xaxis, interval_xaxis=n_plot_xscale, interval_yaxis=n_plot_yscale,
               smooth_avg=n_episodes//100, only_avg=True)
@@ -167,7 +175,7 @@ else:
     for agent in agents:
         np.random.seed(0)
         random.seed(0)
-        perf = test_agent(agent, env, n_episodes, n_steps)
+        _, perf = test_agent(agent, env, n_episodes, n_steps)
         # The smoothing is done here as there are multiple curves
         perfs.append(smooth(perf, n_episodes//100))
         print("Final performance: {}".format(perf[-1]))

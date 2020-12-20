@@ -30,7 +30,12 @@ def test_agent(agent, env, n_episodes, n_steps):
     evaluations_history = []
     # Training phase
     steps_history = np.empty(n_episodes)
+    xaxis = np.empty(n_episodes)
     for ep in range(n_episodes):
+        if ep > 0:
+            xaxis[ep] = xaxis[ep - 1]
+        else:
+            xaxis[ep] = 0
         if (ep%(n_episodes//5)==0):
             print("Episode {}/{}".format(ep+1, n_episodes))
         obs = env.reset()
@@ -39,6 +44,7 @@ def test_agent(agent, env, n_episodes, n_steps):
             old_obs = obs # tuples don't have the copy problem
             obs, reward, done, info = env.step(action)
             agent.learn(old_obs, action, reward, obs, done)
+            xaxis[ep] += 1
             if done:
                 break
                 if np.random.rand()<0.01: print("Step {}".format(step))
@@ -47,7 +53,7 @@ def test_agent(agent, env, n_episodes, n_steps):
         if ep==0:
             print("First trial in {} steps".format(step))
     env.close()
-    return steps_history[1:] # first is purely random
+    return xaxis[1:], steps_history[1:] # first is purely random
 
 def smooth(perf, smooth_avg):
     perf_smooth = []
@@ -66,20 +72,15 @@ agents = [
     ]
 if len(agents) == 1:
     agent = agents[0]
-    perf = test_agent(agent, env, n_episodes, n_steps)
+    xaxis, perf = test_agent(agent, env, n_episodes, n_steps)
     print("Final performance: {}".format(perf[-1]))
     # plotting
     launch_specs = 'perf{}'.format(env.roomsize)
     file_name = "tabular/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
     suptitle = "{} performance on {}{}".format(agent.name, env_name[:-3], env.roomsize)
     title = agent.tell_specs()
-    xlabel = 'Episode'
+    xlabel = 'Optimisation steps'
     ylabel = "Performance at {}".format(env_name)
-    xaxis = np.empty_like(perf)
-    total = 0
-    for i in range(perf.size):
-        total += perf[i]
-        xaxis[i] = total
     save_plot(perf, file_name, suptitle, title, xlabel, ylabel,
               xaxis=xaxis, interval_xaxis=n_plot_xscale, interval_yaxis=n_plot_yscale,
               smooth_avg=n_episodes//100, only_avg=True)
@@ -89,7 +90,7 @@ else:
     for agent in agents:
         np.random.seed(0)
         random.seed(0)
-        perf = test_agent(agent, env, n_episodes, n_steps)
+        _, perf = test_agent(agent, env, n_episodes, n_steps)
         # The smoothing is done here as there are multiple curves
         perfs.append(smooth(perf, n_episodes//100))
         print("Final performance: {}".format(perf[-1]))
