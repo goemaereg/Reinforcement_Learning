@@ -20,8 +20,8 @@ d = {
 }
 
 n_episodes = 3000
-#n_steps = 150000 # virually never
-n_steps = 120 # episode horizon
+n_steps = 150000 # virually never
+#n_steps = 120 # episode horizon
 # subtrajectory length
 n_subtraject_steps = 8
 
