@@ -19,6 +19,7 @@ d = {
     'n': 10
 }
 
+n_runs = 10
 n_episodes = 3000
 n_steps = 150000 # virually never
 #n_steps = 120 # episode horizon
@@ -155,10 +156,20 @@ def smooth(perf, smooth_avg):
 agents = [
     QLearning(**d)
     ]
+
 if len(agents) == 1:
     agent = agents[0]
-    xaxis, perf = test_agent(agent, env, n_episodes, n_steps)
-    print("Final performance: {}".format(perf[-1]))
+    perf_lst = []
+    xaxis_lst = []
+    for run in range(n_runs):
+        # Create new agent instance for every run to drop learned experience.
+        agent = agent.__class__(**d)
+        xaxis, perf = test_agent(agent, env, n_episodes, n_steps)
+        perf_lst.append(perf)
+        xaxis_lst.append(xaxis)
+        print("Final performance: {}".format(perf[-1]))
+    xaxis = np.mean(xaxis_lst, axis=0)
+    perf = np.mean(perf_lst, axis=0)
     # plotting
     launch_specs = 'perf{}'.format(env.roomsize)
     file_name = "tabular_her/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
@@ -172,7 +183,8 @@ if len(agents) == 1:
 
 else:
     perfs = []
-    for agent in agents:
+    for agent_type in agents:
+        agent = agent_type(**d)
         np.random.seed(0)
         random.seed(0)
         _, perf = test_agent(agent, env, n_episodes, n_steps)
