@@ -4,6 +4,8 @@ import json
 from tabular.agents import *
 from tabular.hierarchical import *
 from utils import save_plot
+from sklearn.model_selection import ParameterGrid
+
 
 #env_name = 'FourRoomsGoalBig-v0'
 env_name = 'FourRoomsGoal-v0'
@@ -24,7 +26,6 @@ n_episodes = 3000
 n_steps = 150000 # virually never
 #n_steps = 120 # episode horizon
 # subtrajectory length
-n_subtraject_steps = 8
 
 # plot scales
 n_plot_xscale = (0, 50000)
@@ -33,10 +34,13 @@ n_plot_yscale = (0, 150)
 # replay buffer size
 n_replaybuffer_size = 1*1024
 # number of optimization cycles within an episode
-n_minibatch_cycles = 2 
+n_minibatch_cycles = 2
 # sample batch size for each optimization cycle
-n_batchsize = 8 
+n_batchsize = 8
 
+n_subtraject_steps = 8
+
+grid = ParameterGrid({'n_subtraject_steps': list(range(8, 16, 4))})
 
 from collections import deque
 
@@ -75,7 +79,8 @@ def env_goal(obj):
     return (obj[2], obj[3])
 
 
-def test_agent(agent, env, n_episodes, n_steps):
+def test_agent(agent, env, n_episodes, n_steps, **kwargs):
+    print(kwargs)
     """ Returns the steps_history of the agent"""
     replay_buffer = ReplayBuffer(n_replaybuffer_size)
     # Training phase
@@ -153,33 +158,36 @@ def smooth(perf, smooth_avg):
                     for i in range(smooth_avg, len(perf)-smooth_avg)]
     return perf_smooth
 
+
 agents = [
     QLearning(**d)
     ]
-
 if len(agents) == 1:
     agent = agents[0]
-    perf_lst = []
-    xaxis_lst = []
-    for run in range(n_runs):
-        # Create new agent instance for every run to drop learned experience.
-        agent = agent.__class__(**d)
-        xaxis, perf = test_agent(agent, env, n_episodes, n_steps)
-        perf_lst.append(perf)
-        xaxis_lst.append(xaxis)
-        print("Final performance: {}".format(perf[-1]))
-    xaxis = np.mean(xaxis_lst, axis=0)
-    perf = np.mean(perf_lst, axis=0)
-    # plotting
-    launch_specs = 'perf{}'.format(env.roomsize)
-    file_name = "tabular_her/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
-    suptitle = "{} HER performance on {}{}".format(agent.name, env_name[:-3], env.roomsize)
-    title = agent.tell_specs()
-    xlabel = 'Optimisation steps'
-    ylabel = "Performance at {}".format(env_name)
-    save_plot(perf, file_name, suptitle, title, xlabel, ylabel,
-              xaxis=xaxis, interval_xaxis=n_plot_xscale, interval_yaxis=n_plot_yscale,
-              smooth_avg=n_episodes//100, only_avg=True)
+    # grid search on some hyper params
+    for params in grid:
+        perf_lst = []
+        xaxis_lst = []
+        for _ in range(n_runs):
+            # Create new agent instance for every run to drop learned experience.
+            agent = agent.__class__(**d)
+            xaxis, perf = test_agent(agent, env, n_episodes, n_steps, **params)
+            perf_lst.append(perf)
+            xaxis_lst.append(xaxis)
+            print("Final performance: {}".format(perf[-1]))
+        xaxis = np.mean(xaxis_lst, axis=0)
+        perf = np.mean(perf_lst, axis=0)
+        # plotting
+        hyperlabel = '_'.join([ f'{k}_{v}' for k,v in params.items() ])
+        launch_specs = f'perf_{hyperlabel}_{env.roomsize}'
+        file_name = "tabular_her/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
+        suptitle = "{} HER performance on {}{}".format(agent.name, env_name[:-3], env.roomsize)
+        title = agent.tell_specs()
+        xlabel = 'Optimisation steps'
+        ylabel = "Performance at {}".format(env_name)
+        save_plot(perf, file_name, suptitle, title, xlabel, ylabel,
+                  xaxis=xaxis, interval_xaxis=n_plot_xscale, interval_yaxis=n_plot_yscale,
+                  smooth_avg=n_episodes//100, only_avg=True)
 
 else:
     perfs = []

@@ -29,6 +29,7 @@ def save_plot(l, file_name, suptitle, title, xlabel, ylabel,
         smooth_avg > 0 adds a smoothed curve over 2*(the number of surrounding
             episodes given)(moving averages)
         """
+    plt.figure()
     if xaxis is None:
         if (l.ndim == 1):
             xaxis = np.arange(len(l))
@@ -78,7 +79,7 @@ def save_plot(l, file_name, suptitle, title, xlabel, ylabel,
     ensure_dir(file_name)
     plt.savefig(file_name)
     print("Saved figure to", file_name)
-    plt.close()
+    #plt.close()
 
 def smooth(perf, smooth_avg):
     perf_smooth = []
