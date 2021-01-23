@@ -30,7 +30,7 @@ def test_agent(agent, env, n_episodes, n_steps):
     """ Returns the steps_history of the agent"""
     evaluations_history = []
     # Training phase
-    steps_history = np.empty(n_episodes)
+    steps_history = np.zeros(n_episodes)
     xaxis = np.empty(n_episodes)
     for ep in range(n_episodes):
         if ep > 0:

@@ -40,7 +40,7 @@ n_batchsize = 8
 
 n_subtraject_steps = 8
 
-grid = ParameterGrid({'n_subtraject_steps': list(range(8, 16, 4))})
+grid = ParameterGrid({'n_subtraject_steps': list(range(4, 64, 8))})
 
 from collections import deque
 
@@ -80,19 +80,17 @@ def env_goal(obj):
 
 
 def test_agent(agent, env, n_episodes, n_steps, **kwargs):
-    print(kwargs)
     """ Returns the steps_history of the agent"""
     replay_buffer = ReplayBuffer(n_replaybuffer_size)
     # Training phase
-    steps_history = np.empty(n_episodes)
+    steps_history = np.zeros(n_episodes)
     xaxis = np.empty(n_episodes)
     for ep in range(n_episodes):
-        if (ep%(n_episodes//5)==0):
-            print("Episode {}/{}".format(ep+1, n_episodes))
+        # if (ep%(n_episodes//5)==0):
+        #     print("Episode {}/{}".format(ep+1, n_episodes))
         # sample initial state and goal
         obs = env.reset()
         transition_history = []
-        T=16
         # log an episode
         for step in range(n_steps):
             # sample action a using behavioral policy from agent
@@ -108,8 +106,6 @@ def test_agent(agent, env, n_episodes, n_steps, **kwargs):
             obs = new_obs
             if done:
                 break
-                if np.random.rand()<0.01: print("Step {}".format(step))
-
             steps_history[ep] = step
 
         index = 0
@@ -165,22 +161,26 @@ agents = [
 if len(agents) == 1:
     agent = agents[0]
     # grid search on some hyper params
+    experiments = {}
     for params in grid:
+        hyperlabel = '_'.join([ f'{k}_{v}' for k,v in params.items() ])
+        launchspecs = f'perf_{hyperlabel}_{env.roomsize}'
+        label = f'her_tabular_{env_name}_{agent.name}_{launchspecs}'
         perf_lst = []
         xaxis_lst = []
-        for _ in range(n_runs):
+        for run in range(n_runs):
+            print(f'{label} run: {run + 1}')
             # Create new agent instance for every run to drop learned experience.
             agent = agent.__class__(**d)
             xaxis, perf = test_agent(agent, env, n_episodes, n_steps, **params)
             perf_lst.append(perf)
             xaxis_lst.append(xaxis)
-            print("Final performance: {}".format(perf[-1]))
+            print(f'Final trial in {perf[-1]} steps')
         xaxis = np.mean(xaxis_lst, axis=0)
         perf = np.mean(perf_lst, axis=0)
+        experiments[hyperlabel] = perf[-1]
         # plotting
-        hyperlabel = '_'.join([ f'{k}_{v}' for k,v in params.items() ])
-        launch_specs = f'perf_{hyperlabel}_{env.roomsize}'
-        file_name = "tabular_her/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
+        file_name = f'output/{label}'
         suptitle = "{} HER performance on {}{}".format(agent.name, env_name[:-3], env.roomsize)
         title = agent.tell_specs()
         xlabel = 'Optimisation steps'
@@ -188,7 +188,7 @@ if len(agents) == 1:
         save_plot(perf, file_name, suptitle, title, xlabel, ylabel,
                   xaxis=xaxis, interval_xaxis=n_plot_xscale, interval_yaxis=n_plot_yscale,
                   smooth_avg=n_episodes//100, only_avg=True)
-
+    print(experiments)
 else:
     perfs = []
     for agent_type in agents:
@@ -212,3 +212,4 @@ else:
     ylabel = "Performance at {}".format(env_name)
     save_plot(perfs, file_name, suptitle, title, xlabel, ylabel,
               smooth_avg=0, labels=[agent.name for agent in agents])
+
