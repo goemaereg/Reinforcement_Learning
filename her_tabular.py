@@ -1,14 +1,17 @@
 import gym
 import gym_additions
-import json
 from tabular.agents import *
 from tabular.hierarchical import *
 from utils import save_plot
 from sklearn.model_selection import ParameterGrid
+import functools
+from collections import deque
 
 
-#env_name = 'FourRoomsGoalBig-v0'
-env_name = 'FourRoomsGoal-v0'
+env_big = True
+# env_big = False
+
+env_name = 'FourRoomsGoalBig-v0' if env_big else 'FourRoomsGoal-v0'
 env = gym.make(env_name)
 shapes = (tuple([s.n for s in env.observation_space]), env.action_space.n)
 d = {
@@ -27,22 +30,21 @@ n_steps = 150000 # virually never
 #n_steps = 120 # episode horizon
 # subtrajectory length
 
-# plot scales
-n_plot_xscale = (0, 50000)
-n_plot_yscale = (0, 150)
-
 # replay buffer size
-n_replaybuffer_size = 1*1024
+n_replaybuffer_size = 1*1024 if not env_big else 4*1024
 # number of optimization cycles within an episode
-n_minibatch_cycles = 2
+n_minibatch_cycles = 2 if not env_big else 16
 # sample batch size for each optimization cycle
-n_batchsize = 8
+n_batchsize = 8 if not env_big else 64
+n_estimated_optimizations = n_episodes * n_batchsize * n_minibatch_cycles
+
+# plot scales
+n_plot_xscale = (0, n_estimated_optimizations)
+n_plot_yscale = (0, 1500 if env_big else 150)
 
 n_subtraject_steps = 8
-
-grid = ParameterGrid({'n_subtraject_steps': list(range(4, 64, 8))})
-
-from collections import deque
+grid = ParameterGrid({'n_subtraject_steps': range(4, 64, 8)})
+# grid = ParameterGrid({'n_subtraject_steps': range(44, 60, 8)})
 
 
 class ReplayBuffer(object):
@@ -143,7 +145,9 @@ def test_agent(agent, env, n_episodes, n_steps, **kwargs):
             xaxis[ep] += n_samples 
 
         if ep==0:
-            print("First trial in {} steps".format(step))
+            print(f'First trial in {step} steps')
+        elif (ep%(n_episodes//5)==0):
+            print(f'Trial {ep:>5} in {step} steps')
     env.close()
     return xaxis[1:], steps_history[1:] # first is purely random
 
@@ -188,11 +192,16 @@ if len(agents) == 1:
         save_plot(perf, file_name, suptitle, title, xlabel, ylabel,
                   xaxis=xaxis, interval_xaxis=n_plot_xscale, interval_yaxis=n_plot_yscale,
                   smooth_avg=n_episodes//100, only_avg=True)
-    print(experiments)
+    opt = functools.reduce(lambda a,b: a if experiments[a] <= experiments[b] else b, experiments.keys())
+    for key,value in experiments.items():
+        line = f'{key}: {value}  '
+        if opt == key:
+            line += '**[optimal]**  '
+        print(line)
 else:
     perfs = []
     for agent_type in agents:
-        agent = agent_type(**d)
+        agent = agent_type.__class__(**d)
         np.random.seed(0)
         random.seed(0)
         _, perf = test_agent(agent, env, n_episodes, n_steps)

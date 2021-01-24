@@ -5,7 +5,11 @@ from tabular.agents import *
 from tabular.hierarchical import *
 from utils import save_plot
 
-env_name = 'FourRoomsGoal-v0'
+
+env_big = True
+# env_big = False
+
+env_name = 'FourRoomsGoalBig-v0' if env_big else 'FourRoomsGoal-v0'
 env = gym.make(env_name)
 shapes = (tuple([s.n for s in env.observation_space]), env.action_space.n)
 d = {
@@ -21,9 +25,10 @@ d = {
 n_runs = 10
 n_episodes = 3000
 n_steps = 150000 # virually never
+n_estimated_optimizations = 3500*1000 if env_big else 60000
 # plot scales
-n_plot_xscale = (0, 50000)
-n_plot_yscale = (0, 150)
+n_plot_xscale = (0, n_estimated_optimizations)
+n_plot_yscale = (0, 1600 if env_big else 150)
 
 
 def test_agent(agent, env, n_episodes, n_steps):
@@ -73,6 +78,8 @@ agents = [
     ]
 if len(agents) == 1:
     agent = agents[0]
+    launchspecs = f'perf_{env.roomsize}'
+    label = f'count_tabular_{env_name}_{agent.name}_{launchspecs}'
     perf_lst = []
     xaxis_lst = []
     for run in range(n_runs):
@@ -86,7 +93,7 @@ if len(agents) == 1:
     perf = np.mean(perf_lst, axis=0)
     # plotting
     launch_specs = 'perf{}'.format(env.roomsize)
-    file_name = "tabular/perf_plots/{}/{}/{}".format(env_name, agent.name, launch_specs)
+    file_name = f'output/{label}'
     suptitle = "{} performance on {}{}".format(agent.name, env_name[:-3], env.roomsize)
     title = agent.tell_specs()
     xlabel = 'Optimisation steps'
