@@ -25,7 +25,7 @@ d = {
 n_runs = 10
 n_episodes = 3000
 n_steps = 150000 # virually never
-n_estimated_optimizations = 3500*1000 if env_big else 60000
+n_estimated_optimizations = 3000*1000 if env_big else 60000
 # plot scales
 n_plot_xscale = (0, n_estimated_optimizations)
 n_plot_yscale = (0, 1600 if env_big else 150)
@@ -53,7 +53,6 @@ def test_agent(agent, env, n_episodes, n_steps):
             xaxis[ep] += 1
             if done:
                 break
-                if np.random.rand()<0.01: print("Step {}".format(step))
 
             steps_history[ep] = step
         if ep==0:
@@ -98,6 +97,9 @@ if len(agents) == 1:
     title = agent.tell_specs()
     xlabel = 'Optimisation steps'
     ylabel = "Performance at {}".format(env_name)
+    with open(f'{file_name}.npy', 'wb') as f:
+        arr = np.array([xaxis, perf])
+        np.save(f, arr)
     save_plot(perf, file_name, suptitle, title, xlabel, ylabel,
               xaxis=xaxis, interval_xaxis=n_plot_xscale, interval_yaxis=n_plot_yscale,
               smooth_avg=n_episodes//100, only_avg=True)

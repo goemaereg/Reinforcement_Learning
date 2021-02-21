@@ -220,3 +220,4 @@ class FourRoomsGoalBigEnv(FourRoomsGoalEnv):
         for state in [[quarter,half], [half,quarter], [half,self.height-1-quarter], [self.height-1-quarter,half]]:
             self.obstacles.remove(state)
         self.reset() # choose start and goal
+
