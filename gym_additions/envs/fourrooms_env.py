@@ -8,8 +8,8 @@ class FourRoomsEnv(gym.Env):
     Starting up left, goal in lower-right.
     The main challenge is that the reward is sparse (1_goal)
         """
-    def __init__(self):
-        self.roomsize = 10
+    def __init__(self, roomsize=10):
+        self.roomsize = roomsize
         self.height = 2*self.roomsize +1 # +1 is obstacle width
         self.width = self.height
         half = self.width // 2 # shortcut
@@ -57,7 +57,7 @@ class FourRoomsEnv(gym.Env):
         return self.s, int(done), done, {}
 
 
-    def render(self):
+    def render(self, mode='human'):
         s = np.zeros((self.height, self.width), dtype=int).astype(str)
         s[list(zip(*self.obstacles))] = 'X'
         s[self.terminal] = 'T'
@@ -107,7 +107,7 @@ class FourRoomsMinEnv(FourRoomsEnv):
         return self.s, r, done, {}
 
 
-    def render(self):
+    def render(self, mode='human'):
         s = np.zeros((self.height, self.width), dtype=int).astype(str)
         s[list(zip(*self.obstacles))] = 'X'
         s[list(zip(*self.terminals))] = 'T'
@@ -119,8 +119,8 @@ class FourRoomsMinEnv(FourRoomsEnv):
 class FourRoomsGoalEnv(gym.Env):
     """ Goal-oriented version of the 4Rooms
         """
-    def __init__(self, **kawrgs):
-        self.roomsize = 3 # very small env
+    def __init__(self, roomsize=3, **kwargs):
+        self.roomsize = roomsize
         self.height = 2*self.roomsize +1 # +1 is obstacle width
         self.width = self.height
         half = self.width // 2 # door
@@ -154,12 +154,10 @@ class FourRoomsGoalEnv(gym.Env):
             if not self.start in self.obstacles:
                 break
         self.s = self.start
-
         while True:
             self.goal = (np.random.randint(0,self.height), np.random.randint(0,self.width))
-            if not self.goal in self.obstacles+[self.s]:
+            if not self.goal in self.obstacles + [ self.s ]:
                 break
-
         return (*self.s, *self.goal)
 
     def step(self, action):
@@ -175,12 +173,10 @@ class FourRoomsGoalEnv(gym.Env):
             self.s = (min(self.s[0], self.height - 1),
                       min(self.s[1], self.width - 1))
 
-
         done = (self.s == self.goal)
         return (*self.s, *self.goal), int(done), done, {}
 
-
-    def render(self):
+    def render(self, mode='human'):
         s = np.zeros((self.height, self.width), dtype=int).astype(str)
         s[list(zip(*self.obstacles))] = 'X'
         s[self.goal] = 'G'
@@ -193,31 +189,56 @@ class FourRoomsGoalBigEnv(FourRoomsGoalEnv):
     """ Goal-oriented version of the 4Rooms; bigger rooms.
         """
     def __init__(self):
-        self.roomsize = 10 # bigger env
-        self.height = 2*self.roomsize +1 # +1 is obstacle width
-        self.width = self.height
-        half = self.width // 2 # door
-        quarter = half // 2 # door
-        self.action_space = spaces.Discrete(4)
-        self.observation_space = spaces.Tuple((
-                # input state
-                spaces.Discrete(self.height),
-                spaces.Discrete(self.width),
-                # goal state
-                spaces.Discrete(self.height),
-                spaces.Discrete(self.width)
-            ))
-        self.moves = { # primitive moves
-                0: (-1, 0),  # up
-                1: (0, 1),   # right
-                2: (1, 0),   # down
-                3: (0, -1),  # left
-                }
-        horizontal  = [[i, half] for i in range(self.width)]
-        vertical    = [[half, i] for i in range(self.height)]
-        self.obstacles = horizontal + vertical
-        # now opening the 4 passages
-        for state in [[quarter,half], [half,quarter], [half,self.height-1-quarter], [self.height-1-quarter,half]]:
-            self.obstacles.remove(state)
-        self.reset() # choose start and goal
+        super(FourRoomsGoalBigEnv, self).__init__(roomsize=10)
 
+class FourRoomsKeyDoorEnv(FourRoomsEnv):
+    """ Goal-oriented version of the 4Rooms.
+        """
+    def __init__(self, roomsize=3):
+        super(FourRoomsKeyDoorEnv, self).__init__(roomsize=roomsize)
+
+    def reset(self):
+        # start: upper left room, upper left corner
+        self.start = (0, 0)
+        self.s = self.start
+        # key: lower left room, lower right corner
+        self.key = (self.width//2 - 1, self.height - 1)
+        # door: upper right room, upper right corner
+        self.door = (0, self.width - 1)
+        self.has_key = False
+        return self.s
+
+    def step(self, action):
+        """ Moves the agent in the action direction."""
+        # Next, moving according to action
+        x, y = self.moves[action]
+        if (self.s[0] + x, self.s[1] + y) not in self.obstacles:
+            # move is allowed
+            self.s = self.s[0] + x, self.s[1] + y
+
+            # Finally, setting the agent back into the grid if fallen out
+            self.s = (max(0, self.s[0]), max(0, self.s[1]))
+            self.s = (min(self.s[0], self.height - 1),
+                      min(self.s[1], self.width - 1))
+        if self.s == self.key:
+            self.has_key = True
+        done = self.has_key and (self.s == self.door)
+        reward = int(done)
+        info = {'key': self.has_key}
+        return self.s, reward, done, info
+
+    def render(self, mode='human'):
+        s = np.zeros((self.height, self.width), dtype=int).astype(str)
+        s[list(zip(*self.obstacles))] = 'X'
+        s[self.door] = 'D'
+        s[self.key] = 'K'
+        s[self.start] = 'S'
+        s[self.s] = '.'
+        print(s)
+
+class FourRoomsBigKeyDoorEnv(FourRoomsKeyDoorEnv):
+    """ Goal-oriented version of the 4Rooms.
+        """
+
+    def __init__(self, roomsize=10):
+        super(FourRoomsBigKeyDoorEnv, self).__init__(roomsize=roomsize)

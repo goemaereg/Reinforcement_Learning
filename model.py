@@ -24,21 +24,26 @@ class Model():
         self.name = name
         self.model_name = model_name
         self.env_name = env_name
-        self.env = gym.make(self.env_name)
-
-        shapes = (tuple([s.n for s in self.env.observation_space]),
-                  self.env.action_space.n)
-
+        if 'env' in kwargs.keys():
+            self.env = kwargs['env']
+        else:
+            self.env = gym.make(self.env_name)
         self.agent_class = agent_class
-        self.agent_args = {
-            'env_shapes': shapes,
-            'explo_horizon': 1,
-            'learn_rate': 0.05,
-            'explo_steps': 10,
-            'gamma': 0.9,
-            'lambda': 0.9,
-            'n': 10
-        }
+        if 'agent_args' in kwargs.keys():
+            self.agent_args = kwargs['agent_args']
+        else:
+            shapes = (tuple([s.n for s in self.env.observation_space]),
+                      self.env.action_space.n)
+
+            self.agent_args = {
+                'env_shapes': shapes,
+                'explo_horizon': 1,
+                'learn_rate': 0.05,
+                'explo_steps': 10,
+                'gamma': 0.9,
+                'lambda': 0.9,
+                'n': 10
+            }
         self.agent = self.agent_class(**self.agent_args)
         self.xaxis = None
         self.yaxis = None
@@ -87,42 +92,6 @@ class Model():
         self.yaxis = steps_history[1:]  # first is purely random
         return self.xaxis, self.yaxis
 
-    def test(self, episodes=10, max_episode_steps=10000):
-        """
-        Test the agent in environment
-
-        Args:
-            episodes (int): Number of episodes to run
-            max_episode_steps (int): Maximum number steps to run in each episode
-        """
-        # Testing phase
-        # self.agent.verbose = True
-        old_eps = self.agent.epsilon
-        self.agent.epsilon = 0
-        # Steps history per episode
-        steps_history = np.zeros(episodes)
-        rewards_history = np.zeros(episodes)
-        for ep in range(episodes):
-            cumreward = 0
-            obs = self.env.reset()
-            step = 0
-            for step in range(max_episode_steps):
-                action = self.agent.act(obs)
-                old_obs = obs  # tuples don't have the copy problem
-                obs, reward, done, info = self.env.step(action)
-                cumreward += reward
-                if done:
-                    break
-
-                steps_history[ep] = step
-            rewards_history[ep] = cumreward
-        self.env.close()
-        self.agent.verbose = False
-        self.agent.epsilon = old_eps
-        self.xaxis = range(episodes)
-        self.yaxis = steps_history
-        return self.xaxis, self.yaxis
-
     def train_runs(self, runs=10, episodes=3000, max_episode_steps=150000):
         """
         Run the agent in environment
@@ -149,6 +118,21 @@ class Model():
         self.xaxis = opt
         self.yaxis = perf
         return opt, perf
+
+    def task(self, goal, max_episode_steps=100):
+        total_reward = 0
+        steps = 0
+        done = False
+        info = {}
+        obs = (*self.env.s, *goal)
+        for _ in range(max_episode_steps):
+            action = self.agent.act(obs)
+            obs, reward, done, info = self.env.step(action)
+            total_reward += reward
+            steps += 1
+            if done:
+                break
+        return steps, total_reward, done, info
 
     def load_agent(self, filename):
         self.agent.Qtable = np.load(filename)
