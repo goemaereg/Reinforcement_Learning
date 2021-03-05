@@ -86,27 +86,30 @@ class MetaModel(Model):
                 opt_history[ep] = opt_history[ep - 1]
 
             self.env.reset()
-            obs = int(self.env.has_key)
+            obs_key = int(self.env.has_key)
             # action = self.agent.act(obs)
             steps = 0
+            tasks = 0
             reward, done, info = 0, False, {}
             for _ in range(max_episode_steps):
-                action = self.agent.act(obs)
-                old_obs = obs  # tuples don't have the copy problem
+                action = self.agent.act(obs_key)
+                old_obs_key = obs_key  # tuples don't have the copy problem
                 # act in env, i.e. use action as goal in controller agent (model)
                 ctrl_steps, reward, done, info = self.model_ctrl.task(goal=action,
-                                                      max_episode_steps=100)
+                                                      max_episode_steps=500)
                 steps += ctrl_steps
-                obs = int(info['key'])
-                self.agent.learn(old_obs, action, reward, obs, done)
+                obs_key = int(info['key'])
+                self.agent.learn(old_obs_key, action, reward, obs_key, done)
+                tasks += 1
                 if done:
                     break
-            opt_history[ep] = ep
-            steps_history[ep] = steps
-            key = int(info.get('key', False))
-            if ep < 10 or (ep % 500) == 0 or ep == (episodes - 1):
+            opt_history[ep]  += tasks
+            steps_history[ep] = tasks
+            if True or (ep % 500) == 0 or ep == (episodes - 1):
                 print(
-                    f'ep: {ep} steps: {steps} reward: {reward} key: {key} door: {int(done)}')
+                    f'ep: {ep} tasks: {tasks} '
+                    f'actions: {steps} reward: {reward} '
+                    f'key: {obs_key} door: {int(done)}')
 
         self.xaxis = opt_history
         self.yaxis = steps_history
@@ -129,7 +132,7 @@ def create_meta_model(model_ctrl):
     agent_args = {
         'env_shapes': shapes,
         'explo_horizon': 1,
-        'learn_rate': 0.05,
+        'learn_rate': 0.15,
         'explo_steps': 10,
         'gamma': 0.9,
         'lambda': 0.9,
@@ -153,7 +156,7 @@ def main():
     #print(model.test())
     # meta agent
     model_meta = create_meta_model(model_ctrl=model_ctrl)
-    model_meta.train(episodes=5000, max_episode_steps=100)
+    model_meta.train(episodes=1000, max_episode_steps=10000)
     model_meta.save_plot(f'{model_meta.path}.plot')
 
 

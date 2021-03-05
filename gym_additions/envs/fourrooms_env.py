@@ -202,9 +202,9 @@ class FourRoomsKeyDoorEnv(FourRoomsEnv):
         self.start = (0, 0)
         self.s = self.start
         # key: lower left room, lower right corner
-        self.key = (self.width//2 - 1, self.height - 1)
+        self.key = (self.width // 2 - 1, self.height - 1)
         # door: upper right room, upper right corner
-        self.door = (0, self.width - 1)
+        self.door = (self.width - 1, 0)
         self.has_key = False
         return self.s
 

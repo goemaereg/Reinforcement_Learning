@@ -120,19 +120,18 @@ class Model():
         return opt, perf
 
     def task(self, goal, max_episode_steps=100):
-        total_reward = 0
+        reward = 0
         steps = 0
         done = False
         info = {}
-        obs = (*self.env.s, *goal)
         for _ in range(max_episode_steps):
+            obs = (*self.env.s, *goal)
             action = self.agent.act(obs)
-            obs, reward, done, info = self.env.step(action)
-            total_reward += reward
+            _, reward, done, info = self.env.step(action)
             steps += 1
-            if done:
+            if goal == self.env.s:
                 break
-        return steps, total_reward, done, info
+        return steps, reward, done, info
 
     def load_agent(self, filename):
         self.agent.Qtable = np.load(filename)

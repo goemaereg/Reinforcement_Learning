@@ -114,6 +114,7 @@ class Sarsa(Agent):
 
     def anneal_epsilon(self, ep:int):
         """ Anneals epsilon linearly based on the step number """
+
         self.epsilon = max((self.explo_horizon - ep)/self.explo_horizon, self.min_eps)
 
     def _reward_seq_discounter(self, rewards):
@@ -180,9 +181,13 @@ class QLearning(Sarsa):
         QLearning maxes over actions in the future state (off policy).
         Updates the annealing epsilon. """
         r, discount = self._reward_seq_discounter(r) # outputs r, gamma unless option (multistep)
-        self.Qtable[s][a] += self.learn_rate * (
-            r + discount*np.max(self.Qtable[s_])*(1-d) - self.Qtable[s][a]
-        )
+        qa_value = self.Qtable[s][a]
+        target = discount * np.max(self.Qtable[s_]) * (1-d)
+        delta = r + target - qa_value
+        update = self.learn_rate * delta
+        self.Qtable[s][a] += update
+        # self.Qtable[s][a] += self.learn_rate * (
+        #     r + discount*np.max(self.Qtable[s_])*(1-d) - self.Qtable[s][a])
         self.step += 1
         self.anneal_epsilon(self.step)
 
