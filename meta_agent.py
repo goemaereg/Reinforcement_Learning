@@ -19,7 +19,7 @@ env_big = True
 
 if env_big:
     env_name = 'FourRoomsBigKeyDoorEnv-v0'
-    path_ctrl_agent = 'output/her_tabular_FourRoomsGoalBig-v0_QLearning_perf_n_subtraject_steps_44_10.npy'
+    path_ctrl_agent = 'outputm/train_stl_44_HER_FourRoomsGoalBig-v0_QLearning_perf_10.agent.npy'
     model_name = 'train_stl_44',
 else:
     env_name = 'FourRoomsKeyDoorEnv-v0'
@@ -91,25 +91,45 @@ class MetaModel(Model):
             steps = 0
             tasks = 0
             reward, done, info = 0, False, {}
+            # make sure control agent acts greedy:
+            old_eps = self.model_ctrl.agent.epsilon
+            self.model_ctrl.agent.epsilon = 0
+
             for _ in range(max_episode_steps):
-                action = self.agent.act(obs_key)
+                meta_action = self.agent.act(obs_key)
                 old_obs_key = obs_key  # tuples don't have the copy problem
                 # act in env, i.e. use action as goal in controller agent (model)
-                ctrl_steps, reward, done, info = self.model_ctrl.task(goal=action,
-                                                      max_episode_steps=500)
+
+                # ctrl_steps, reward, done, info = self.model_ctrl.task(meta_action, 500)
+                reward = 0
+                ctrl_steps = 0
+                done = False
+                info = {}
+                for _ in range(500):
+
+                    ctrl_agent_obs = (*self.model_ctrl.env.s, *meta_action)
+                    ctrl_action = self.model_ctrl.agent.act(ctrl_agent_obs)
+                    _, reward, done, info = self.model_ctrl.env.step(ctrl_action)
+                    ctrl_steps += 1
+                    # goal reached ?
+                    if meta_action == self.model_ctrl.env.s:
+                        break
+
                 steps += ctrl_steps
                 obs_key = int(info['key'])
-                self.agent.learn(old_obs_key, action, reward, obs_key, done)
+                self.agent.learn(old_obs_key, meta_action, reward, obs_key, done)
                 tasks += 1
                 if done:
                     break
-            opt_history[ep]  += tasks
+            opt_history[ep] = ep #+= tasks
             steps_history[ep] = tasks
             if True or (ep % 500) == 0 or ep == (episodes - 1):
                 print(
                     f'ep: {ep} tasks: {tasks} '
                     f'actions: {steps} reward: {reward} '
                     f'key: {obs_key} door: {int(done)}')
+            # undo control agent greedy mode
+            self.model_ctrl.agent.epsilon = old_eps
 
         self.xaxis = opt_history
         self.yaxis = steps_history
@@ -131,6 +151,7 @@ def create_meta_model(model_ctrl):
 
     agent_args = {
         'env_shapes': shapes,
+        'min_eps': 0.1,
         'explo_horizon': 1,
         'learn_rate': 0.15,
         'explo_steps': 10,
@@ -155,9 +176,12 @@ def main():
     model_ctrl.load_agent(path_ctrl_agent)
     #print(model.test())
     # meta agent
+    episodes=100
     model_meta = create_meta_model(model_ctrl=model_ctrl)
-    model_meta.train(episodes=1000, max_episode_steps=10000)
-    model_meta.save_plot(f'{model_meta.path}.plot')
+    model_meta.train(episodes=episodes, max_episode_steps=10000)
+    model_meta.save_plot(f'{model_meta.path}.plot', episodes=episodes,
+                         yscale='log', ybase=2, smooth=False,
+                         xlabel='Episodes', ylabel='Tasks')
 
 
 if __name__ == '__main__':

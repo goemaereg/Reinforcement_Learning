@@ -146,24 +146,42 @@ class Model():
         arr = np.array([self.xaxis, self.yaxis])
         np.save(path, arr)
 
-    def save_plot(self, path, episodes=3000):
-        # calculate smoothed plot (just to determine axis scale)
-        smooth_avg = episodes // 100
-        l_smooth = [None for _ in range(smooth_avg)]
-        l_smooth += [np.mean(self.yaxis[i - smooth_avg:i + smooth_avg])
-                     for i in range(smooth_avg, self.yaxis.size - smooth_avg)]
-        # plot scales
-        n_plot_xscale = (0, self.xaxis.max())
-        n_plot_yscale = (0, max(l_smooth[smooth_avg:]))
-        suptitle = f'{self.agent.name} performance on {self.env_name[:-3]}{self.env.roomsize}'
-        title = self.agent.tell_specs()
-        xlabel = 'Optimisation steps'
-        ylabel = "Performance at {}".format(self.env_name)
-        save_plot(self.yaxis, path, suptitle, title, xlabel, ylabel,
+    def save_plot(self, path, episodes=3000, smooth=True,
+                  xscale=None, xbase=10,
+                  yscale=None, ybase=10,
+                  title=None, subtitle=None,
+                  xlabel=None, ylabel=None):
+        if smooth:
+            # calculate smoothed plot (just to determine axis scale)
+            smooth_avg = episodes // 100
+            l_smooth = [None for _ in range(smooth_avg)]
+            l_smooth += [np.mean(self.yaxis[i - smooth_avg:i + smooth_avg])
+                         for i in range(smooth_avg, self.yaxis.size - smooth_avg)]
+            # plot scales
+            n_plot_xscale = None #(0, self.xaxis.max())
+            n_plot_yscale = None #(0, max(l_smooth[smooth_avg:]))
+            smooth_avg = episodes//100
+            only_avg = True
+        else:
+            # plot scales
+            n_plot_xscale = None #(0, self.xaxis.max())
+            n_plot_yscale = None #(0, self.yaxis.max())
+            smooth_avg = 0
+            only_avg = False
+
+        ptitle = title if title else self.agent.tell_specs()
+        if subtitle:
+            psubtitle = subtitle
+        else:
+            psubtitle = f'{self.agent.name} performance on {self.env_name[:-3]}{self.env.roomsize}'
+        pxlabel = xlabel if xlabel else 'Optimisation steps'
+        pylabel = ylabel if ylabel else "Performance at {}".format(self.env_name)
+        save_plot(self.yaxis, path, psubtitle, ptitle, pxlabel, pylabel,
                   xaxis=self.xaxis,
                   interval_xaxis=n_plot_xscale,
                   interval_yaxis=n_plot_yscale,
-                  smooth_avg=episodes//100, only_avg=True)
+                  xscale=xscale, xbase=xbase, yscale=yscale, ybase=ybase,
+                  smooth_avg=smooth_avg, only_avg=only_avg)
 
 
 class ReplayBuffer(object):

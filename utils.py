@@ -22,7 +22,9 @@ def assert_not_abstract(obj, abstract_name):
            " as it is assumed abstract."
 
 def save_plot(l, file_name, suptitle, title, xlabel, ylabel,
-              xaxis=None, force_xaxis_0=False, interval_xaxis=None, interval_yaxis=None,
+              xaxis=None, force_xaxis_0=False,
+              interval_xaxis=None, interval_yaxis=None,
+              xscale=None, xbase=10, yscale=None, ybase=10,
               smooth_avg=0, only_avg=False, labels=None, xlineat=None,
               ylineat=None):
     """ Simply saves a plot with multiple usual arguments.
@@ -46,6 +48,10 @@ def save_plot(l, file_name, suptitle, title, xlabel, ylabel,
         plt.plot(xaxis,len(l)*[None])
     plt.suptitle(suptitle, fontsize=14, fontweight='bold')
     plt.title(title)
+    if xscale:
+        plt.xscale(xscale, base=xbase)
+    if yscale:
+        plt.yscale(yscale, base=ybase)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     if smooth_avg > 0:
@@ -74,7 +80,6 @@ def save_plot(l, file_name, suptitle, title, xlabel, ylabel,
         plt.axhline(xlineat, color='red', linewidth=0.5)
     if ylineat is not None:
         plt.axvline(ylineat, color='red', linewidth=0.5)
-
     file_name += '.png'
     ensure_dir(file_name)
     plt.savefig(file_name)

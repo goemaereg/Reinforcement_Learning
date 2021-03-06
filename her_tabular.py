@@ -3,12 +3,12 @@ from sklearn.model_selection import ParameterGrid
 from model import HERModel
 
 
-# env_big = True
-env_big = False
+env_big = True
+# env_big = False
 env_name = 'FourRoomsGoalBig-v0' if env_big else 'FourRoomsGoal-v0'
 
 # grid = ParameterGrid({'subtraject_len': range(4, 64, 8)})
-grid = ParameterGrid({'subtraject_len': range(28, 30, 8)})
+grid = ParameterGrid({'subtraject_len': range(44,48, 8)})
 
 
 if __name__ == '__main__':
