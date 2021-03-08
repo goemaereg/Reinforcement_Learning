@@ -15,19 +15,21 @@ register(
     entry_point='gym_additions.envs:FourRoomsBigKeyDoorEnv',
     )
 
-# env_big = False
-env_big = True
+env_big = False
+# env_big = True
 
 if env_big:
     env_name = 'FourRoomsBigKeyDoorEnv-v0'
-    path_ctrl_agent = 'outputm/train_stl_44_HER_FourRoomsGoalBig-v0_QLearning_perf_10.agent.npy'
-    model_name = 'train_stl_44',
+    ctrl_agent_path = 'outputm/train_stl_44_HER_FourRoomsGoalBig-v0_QLearning_perf_10.agent.npy'
+    ctrl_model_name = 'train_stl_44'
+    meta_agent_path = 'outputm/meta_Meta_FourRoomsBigKeyDoorEnv-v0_MetaAgent_perf_10.agent.npy'
 else:
     env_name = 'FourRoomsKeyDoorEnv-v0'
-    path_ctrl_agent = 'outputm/train_stl_28_HER_FourRoomsGoal-v0_QLearning_perf_3.agent.npy'
-    model_name = 'train_stl_28',
+    ctrl_agent_path = 'outputm/train_stl_28_HER_FourRoomsGoal-v0_QLearning_perf_3.agent.npy'
+    ctrl_model_name = 'train_stl_28'
+    meta_agent_path = 'outputm/meta_Meta_FourRoomsKeyDoorEnv-v0_MetaAgent_perf_3.agent.npy'
 
-args_ctrl_agent = dict(model_name=model_name,
+args_ctrl_agent = dict(model_name=ctrl_model_name,
                 agent_class=QLearning, env_name=env_name,
                 env_big=env_big, subtraject_len=44)
 
@@ -155,7 +157,7 @@ class MetaModel(Model):
         self.yaxis = np.mean(yaxis_lst, axis=0)
         return self.xaxis, self.yaxis
 
-    def test(self, max_episode_steps):
+    def test(self, episodes, max_episode_steps):
         # make sure meta agent acts greedy:
         meta_old_eps = self.agent.epsilon
         self.agent.epsilon = 0
@@ -163,33 +165,43 @@ class MetaModel(Model):
         ctrl_old_eps = self.model_ctrl.agent.epsilon
         self.model_ctrl.agent.epsilon = 0
 
-        obs = self.model_ctrl.env.reset()
-        tasks = 0
-        done = False
+        # Steps history per episode
+        steps_history = np.zeros(episodes)
+        # Optimizatons history per episode
+        opt_history = np.zeros(episodes)
         key = lambda obs: obs[2]
-        step = 0
-        for _ in range(max_episode_steps):
-            meta_action = self.agent.act(key(obs))
-            done = False
-            for step in range(500):
-                ctrl_agent_obs = (*self.model_ctrl.env.s, *meta_action)
-                # act in env, i.e. use action as goal in controller agent (model)
-                ctrl_action = self.model_ctrl.agent.act(ctrl_agent_obs)
-                obs, _, done, _ = self.model_ctrl.env.step(ctrl_action)
-                # goal reached ?
-                if meta_action == self.model_ctrl.env.s:
-                    break
 
-            tasks += 1
-            print(f'task: {tasks} steps: {step} key:{key(obs)} door:{int(done)}')
-            if done:
-                break
+        for ep in range(episodes):
+            obs = self.model_ctrl.env.reset()
+            tasks = 0
+            done = False
+            step = 0
+            for _ in range(max_episode_steps):
+                meta_action = self.agent.act(key(obs))
+                done = False
+                for step in range(500):
+                    ctrl_agent_obs = (*self.model_ctrl.env.s, *meta_action)
+                    # act in env, i.e. use action as goal in controller agent (model)
+                    ctrl_action = self.model_ctrl.agent.act(ctrl_agent_obs)
+                    obs, _, done, _ = self.model_ctrl.env.step(ctrl_action)
+                    # goal reached ?
+                    if meta_action == self.model_ctrl.env.s:
+                        break
+
+                tasks += 1
+                print(f'ep: {ep} task: {tasks} steps: {step} key:{key(obs)} door:{int(done)}')
+                if done:
+                    break
+            opt_history[ep] = ep
+            steps_history[ep] = tasks
 
         # undo control agent greedy mode
         self.agent.epsilon = meta_old_eps
         # undo control agent greedy mode
         self.model_ctrl.agent.epsilon = ctrl_old_eps
-        return tasks, obs[2], done
+        self.xaxis = opt_history
+        self.yaxis = steps_history
+        return self.xaxis, self.yaxis
 
 
 def create_meta_model(model_ctrl):
@@ -234,23 +246,22 @@ def train_meta_model(model, episodes):
                          yscale='log', ybase=2, smooth=True,
                          xlabel='Episodes', ylabel='Tasks')
 
-def test_meta_model(model, max_episode_steps=10000):
-    for _ in range(2):
-        np.random.seed(0)
-        random.seed(0)
-        tasks, key, done = model.test(max_episode_steps=max_episode_steps)
-        print (f'tasks: {tasks} key: {key}: door: {int(done)}')
-
 
 def main():
     model_ctrl = Model(**args_ctrl_agent)
-    model_ctrl.load_agent(path_ctrl_agent)
+    model_ctrl.load_agent(ctrl_agent_path)
     #print(model.test())
     # meta agent
-    episodes=3000
+    train_episodes=3000
     model_meta = create_meta_model(model_ctrl=model_ctrl)
-    train_meta_model(model_meta, episodes)
-    test_meta_model(model_meta, max_episode_steps=10000)
+    # train_meta_model(model_meta, episodes=train_episodes)
+    model_meta.load_agent(meta_agent_path)
+    test_episodes = 3000
+    model_meta.test(episodes=test_episodes, max_episode_steps=100)
+    model_meta.save_plot(f'{model_meta.path}.test.plot', episodes=test_episodes,
+                    yscale=None, ybase=2, smooth=False,
+                    xlabel='Episodes', ylabel='Tasks')
+
 
 if __name__ == '__main__':
     main()
