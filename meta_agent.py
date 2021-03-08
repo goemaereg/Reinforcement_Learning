@@ -3,6 +3,7 @@ from gym import spaces
 from utils import assert_not_abstract, my_argmax
 from model import Model
 import numpy as np
+import random
 from gym.envs.registration import register
 
 register(
@@ -80,60 +81,115 @@ class MetaModel(Model):
         steps_history = np.zeros(episodes)
         # Optimizatons history per episode
         opt_history = np.zeros(episodes)
-
+        key = lambda obs: obs[2]
         for ep in range(episodes):
             if ep > 0:
                 opt_history[ep] = opt_history[ep - 1]
 
-            self.env.reset()
-            obs_key = int(self.env.has_key)
+            obs = self.model_ctrl.env.reset()
             # action = self.agent.act(obs)
             steps = 0
             tasks = 0
-            reward, done, info = 0, False, {}
+            reward = 0
+            done = False
             # make sure control agent acts greedy:
             old_eps = self.model_ctrl.agent.epsilon
             self.model_ctrl.agent.epsilon = 0
 
             for _ in range(max_episode_steps):
-                meta_action = self.agent.act(obs_key)
-                old_obs_key = obs_key  # tuples don't have the copy problem
-                # act in env, i.e. use action as goal in controller agent (model)
-
-                # ctrl_steps, reward, done, info = self.model_ctrl.task(meta_action, 500)
-                reward = 0
+                meta_action = self.agent.act(key(obs))
+                old_obs = obs  # tuples don't have the copy problem
                 ctrl_steps = 0
-                done = False
-                info = {}
                 for _ in range(500):
 
                     ctrl_agent_obs = (*self.model_ctrl.env.s, *meta_action)
                     ctrl_action = self.model_ctrl.agent.act(ctrl_agent_obs)
-                    _, reward, done, info = self.model_ctrl.env.step(ctrl_action)
+                    # act in env, i.e. use action as goal in controller agent (model)
+                    obs, reward, done, _ = self.model_ctrl.env.step(ctrl_action)
                     ctrl_steps += 1
                     # goal reached ?
                     if meta_action == self.model_ctrl.env.s:
                         break
 
                 steps += ctrl_steps
-                obs_key = int(info['key'])
-                self.agent.learn(old_obs_key, meta_action, reward, obs_key, done)
+                self.agent.learn(key(old_obs), meta_action, reward, key(obs), done)
                 tasks += 1
                 if done:
                     break
             opt_history[ep] = ep #+= tasks
             steps_history[ep] = tasks
-            if True or (ep % 500) == 0 or ep == (episodes - 1):
+            if (ep % 500) == 0 or ep == (episodes - 1):
                 print(
                     f'ep: {ep} tasks: {tasks} '
                     f'actions: {steps} reward: {reward} '
-                    f'key: {obs_key} door: {int(done)}')
+                    f'key: {key(obs)} door: {int(done)}')
             # undo control agent greedy mode
             self.model_ctrl.agent.epsilon = old_eps
 
         self.xaxis = opt_history
         self.yaxis = steps_history
         return self.xaxis, self.yaxis
+
+    def train_runs(self, runs=10, episodes=3000, max_episode_steps=10000):
+        """
+        Run the agent in environment
+
+        Args:
+            runs (int): Maximum number of runs
+            episodes (int): Number of episodes to run
+            max_episode_steps (int): Maximum number steps to run in each episode
+        """
+        xaxis_lst = []
+        yaxis_lst = []
+        np.random.seed(0)
+        random.seed(0)
+        for run in range(runs):
+            # Create new agent instance for every run to drop learned experience.
+            self.agent = self.agent_class(**self.agent_args)
+            xaxis, yaxis = self.train(episodes=episodes,
+                                     max_episode_steps=max_episode_steps)
+            xaxis_lst.append(xaxis)
+            yaxis_lst.append(yaxis)
+            # print("Final performance: {}".format(perf[-1]))
+        self.xaxis = np.mean(xaxis_lst, axis=0)
+        self.yaxis = np.mean(yaxis_lst, axis=0)
+        return self.xaxis, self.yaxis
+
+    def test(self, max_episode_steps):
+        # make sure meta agent acts greedy:
+        meta_old_eps = self.agent.epsilon
+        self.agent.epsilon = 0
+        # make sure control agent acts greedy:
+        ctrl_old_eps = self.model_ctrl.agent.epsilon
+        self.model_ctrl.agent.epsilon = 0
+
+        obs = self.model_ctrl.env.reset()
+        tasks = 0
+        done = False
+        key = lambda obs: obs[2]
+        step = 0
+        for _ in range(max_episode_steps):
+            meta_action = self.agent.act(key(obs))
+            done = False
+            for step in range(500):
+                ctrl_agent_obs = (*self.model_ctrl.env.s, *meta_action)
+                # act in env, i.e. use action as goal in controller agent (model)
+                ctrl_action = self.model_ctrl.agent.act(ctrl_agent_obs)
+                obs, _, done, _ = self.model_ctrl.env.step(ctrl_action)
+                # goal reached ?
+                if meta_action == self.model_ctrl.env.s:
+                    break
+
+            tasks += 1
+            print(f'task: {tasks} steps: {step} key:{key(obs)} door:{int(done)}')
+            if done:
+                break
+
+        # undo control agent greedy mode
+        self.agent.epsilon = meta_old_eps
+        # undo control agent greedy mode
+        self.model_ctrl.agent.epsilon = ctrl_old_eps
+        return tasks, obs[2], done
 
 
 def create_meta_model(model_ctrl):
@@ -142,10 +198,10 @@ def create_meta_model(model_ctrl):
     # action space: position = tuple(x = range(0:width), y = range(0:height)
     # unravel position space into one-dimensional action space
     actions = []
-    for x in range(model_ctrl.env.width):
-        for y in range(model_ctrl.env.height):
-            if [x, y] not in model_ctrl.env.obstacles:
-                actions.append((x, y))
+    for height in range(model_ctrl.env.height):
+        for width in range(model_ctrl.env.width):
+            if [height, width] not in model_ctrl.env.obstacles:
+                actions.append((height, width))
     action_space = spaces.Discrete(len(actions))
     shapes = ((observation_space.n,), action_space.n)
 
@@ -170,19 +226,31 @@ def create_meta_model(model_ctrl):
     model_meta = MetaModel(**args)
     return model_meta
 
+def train_meta_model(model, episodes):
+    model.train_runs(episodes=episodes, max_episode_steps=10000)
+    model.save_agent(f'{model.path}.agent.npy')
+    model.save_plot_data(f'{model.path}.plot.npy')
+    model.save_plot(f'{model.path}.plot', episodes=episodes,
+                         yscale='log', ybase=2, smooth=True,
+                         xlabel='Episodes', ylabel='Tasks')
+
+def test_meta_model(model, max_episode_steps=10000):
+    for _ in range(2):
+        np.random.seed(0)
+        random.seed(0)
+        tasks, key, done = model.test(max_episode_steps=max_episode_steps)
+        print (f'tasks: {tasks} key: {key}: door: {int(done)}')
+
 
 def main():
     model_ctrl = Model(**args_ctrl_agent)
     model_ctrl.load_agent(path_ctrl_agent)
     #print(model.test())
     # meta agent
-    episodes=100
+    episodes=3000
     model_meta = create_meta_model(model_ctrl=model_ctrl)
-    model_meta.train(episodes=episodes, max_episode_steps=10000)
-    model_meta.save_plot(f'{model_meta.path}.plot', episodes=episodes,
-                         yscale='log', ybase=2, smooth=False,
-                         xlabel='Episodes', ylabel='Tasks')
-
+    train_meta_model(model_meta, episodes)
+    test_meta_model(model_meta, max_episode_steps=10000)
 
 if __name__ == '__main__':
     main()

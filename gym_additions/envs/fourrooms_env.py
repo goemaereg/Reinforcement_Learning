@@ -191,22 +191,28 @@ class FourRoomsGoalBigEnv(FourRoomsGoalEnv):
     def __init__(self):
         super(FourRoomsGoalBigEnv, self).__init__(roomsize=10)
 
+
 class FourRoomsKeyDoorEnv(FourRoomsEnv):
-    """ Goal-oriented version of the 4Rooms.
-        """
     def __init__(self, roomsize=3):
         super(FourRoomsKeyDoorEnv, self).__init__(roomsize=roomsize)
+        self.observation_space = spaces.Tuple((
+                # position state
+                spaces.Discrete(self.height),
+                spaces.Discrete(self.width),
+                # key state (0: no key, 1: has key)
+                spaces.Discrete(2)
+                ))
 
     def reset(self):
         # start: upper left room, upper left corner
         self.start = (0, 0)
         self.s = self.start
         # key: lower left room, lower right corner
-        self.key = (self.width // 2 - 1, self.height - 1)
+        self.key = (self.height - 1, self.width // 2 - 1)
         # door: upper right room, upper right corner
-        self.door = (self.width - 1, 0)
-        self.has_key = False
-        return self.s
+        self.door = (0, self.width - 1)
+        self.has_key = self.s == self.key
+        return (*self.s, int(self.has_key))
 
     def step(self, action):
         """ Moves the agent in the action direction."""
@@ -224,8 +230,7 @@ class FourRoomsKeyDoorEnv(FourRoomsEnv):
             self.has_key = True
         done = self.has_key and (self.s == self.door)
         reward = int(done)
-        info = {'key': self.has_key}
-        return self.s, reward, done, info
+        return (*self.s, int(self.has_key)), reward, done, {}
 
     def render(self, mode='human'):
         s = np.zeros((self.height, self.width), dtype=int).astype(str)
@@ -237,8 +242,5 @@ class FourRoomsKeyDoorEnv(FourRoomsEnv):
         print(s)
 
 class FourRoomsBigKeyDoorEnv(FourRoomsKeyDoorEnv):
-    """ Goal-oriented version of the 4Rooms.
-        """
-
     def __init__(self, roomsize=10):
         super(FourRoomsBigKeyDoorEnv, self).__init__(roomsize=roomsize)
