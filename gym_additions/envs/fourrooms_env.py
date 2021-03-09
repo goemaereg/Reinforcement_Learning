@@ -30,7 +30,9 @@ class FourRoomsEnv(gym.Env):
         vertical    = [[half, i] for i in range(self.height)]
         self.obstacles = horizontal + vertical
         # now opening the 4 passages
-        for state in [[quarter,half], [half,quarter], [half,self.height-quarter], [self.height-quarter,half]]:
+        # for state in [[quarter,half], [half,quarter], [half,self.height-quarter], [self.height-quarter,half]]:
+        #     self.obstacles.remove(state)
+        for state in [[quarter,half], [half,quarter], [half,self.height-1-quarter], [self.height-1-quarter,half]]:
             self.obstacles.remove(state)
         self.start = (0,0)
         # begin in start state

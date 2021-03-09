@@ -5,6 +5,9 @@ from model import Model
 import numpy as np
 import random
 from gym.envs.registration import register
+import matplotlib.pyplot as plt
+import matplotlib.colors as clr
+
 
 register(
     id='FourRoomsKeyDoorEnv-v0',
@@ -15,8 +18,8 @@ register(
     entry_point='gym_additions.envs:FourRoomsBigKeyDoorEnv',
     )
 
-# env_big = False
-env_big = True
+env_big = False
+# env_big = True
 
 if env_big:
     env_name = 'FourRoomsBigKeyDoorEnv-v0'
@@ -204,6 +207,34 @@ class MetaModel(Model):
         self.yaxis = steps_history
         return self.xaxis, self.yaxis
 
+    def save_policy_plot(self, path=None, text=False):
+        """ Visualizes a policy and value function given agent and environment."""
+        cmap = clr.LinearSegmentedColormap.from_list('mycmap',
+                                                         ['#FF0000',
+                                                          '#000000',
+                                                          '#008000'])
+        print(self.agent.Qtable)
+        print(self.env.obstacles)
+        for key in range(self.agent.input_shape[0]):
+            grid = np.zeros((self.env.height, self.env.width))
+            high = np.max(self.agent.Qtable[key])
+            print(f'high: {high}')
+            for obs in self.env.obstacles:
+                grid[obs[0]][obs[1]] = -high
+            fig, ax = plt.subplots()
+            for i in range(len(self.agent.actions)):
+                height, width = self.agent.actions[i]
+                grid[height][width] = self.agent.Qtable[key][i]
+                if text:
+                    ax.text(width, height,
+                               f'\n{self.agent.Qtable[key][i]:04.2f}',
+                               ha="center", va="center", color="w")
+            im = ax.imshow(grid, cmap=cmap)
+            ax.set_title(f'Meta QValue visualization (key = {key})')
+            fig.tight_layout()
+            path = f'{self.path}.{key}.plot.png'
+            plt.savefig(path)
+
 
 def create_meta_model(model_ctrl):
     # state space: has_key = int(boolean)
@@ -255,14 +286,14 @@ def main():
     # meta agent
     train_episodes=3000
     model_meta = create_meta_model(model_ctrl=model_ctrl)
-    # train_meta_model(model_meta, episodes=train_episodes)
+    train_meta_model(model_meta, episodes=train_episodes)
     model_meta.load_agent(meta_agent_path)
     test_episodes = 10
     model_meta.test(episodes=test_episodes, max_episode_steps=100)
     model_meta.save_plot(f'{model_meta.path}.test.plot', episodes=test_episodes,
                     yscale=None, ybase=2, smooth=False,
                     xlabel='Episodes', ylabel='Tasks')
-
+    model_meta.save_policy_plot(text=not env_big)
 
 if __name__ == '__main__':
     main()
