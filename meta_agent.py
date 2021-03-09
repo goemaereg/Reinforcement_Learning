@@ -15,8 +15,8 @@ register(
     entry_point='gym_additions.envs:FourRoomsBigKeyDoorEnv',
     )
 
-env_big = False
-# env_big = True
+# env_big = False
+env_big = True
 
 if env_big:
     env_name = 'FourRoomsBigKeyDoorEnv-v0'
@@ -175,21 +175,22 @@ class MetaModel(Model):
             obs = self.model_ctrl.env.reset()
             tasks = 0
             done = False
-            step = 0
+            actions = 0
             for _ in range(max_episode_steps):
                 meta_action = self.agent.act(key(obs))
                 done = False
-                for step in range(500):
+                for _ in range(500):
                     ctrl_agent_obs = (*self.model_ctrl.env.s, *meta_action)
                     # act in env, i.e. use action as goal in controller agent (model)
                     ctrl_action = self.model_ctrl.agent.act(ctrl_agent_obs)
                     obs, _, done, _ = self.model_ctrl.env.step(ctrl_action)
+                    actions += 1
                     # goal reached ?
                     if meta_action == self.model_ctrl.env.s:
                         break
 
                 tasks += 1
-                print(f'ep: {ep} task: {tasks} steps: {step} key:{key(obs)} door:{int(done)}')
+                print(f'ep: {ep} task: {tasks} actions: {actions} key:{key(obs)} door:{int(done)}')
                 if done:
                     break
             opt_history[ep] = ep
@@ -256,7 +257,7 @@ def main():
     model_meta = create_meta_model(model_ctrl=model_ctrl)
     # train_meta_model(model_meta, episodes=train_episodes)
     model_meta.load_agent(meta_agent_path)
-    test_episodes = 3000
+    test_episodes = 10
     model_meta.test(episodes=test_episodes, max_episode_steps=100)
     model_meta.save_plot(f'{model_meta.path}.test.plot', episodes=test_episodes,
                     yscale=None, ybase=2, smooth=False,
