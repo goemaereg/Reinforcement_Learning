@@ -18,8 +18,8 @@ register(
     entry_point='gym_additions.envs:FourRoomsBigKeyDoorEnv',
     )
 
-env_big = False
-# env_big = True
+# env_big = False
+env_big = True
 
 if env_big:
     env_name = 'FourRoomsBigKeyDoorEnv-v0'
@@ -86,6 +86,7 @@ class MetaModel(Model):
         steps_history = np.zeros(episodes)
         # Optimizatons history per episode
         opt_history = np.zeros(episodes)
+        key_history = np.zeros(episodes)
         key = lambda obs: obs[2]
         for ep in range(episodes):
             if ep > 0:
@@ -94,7 +95,7 @@ class MetaModel(Model):
             obs = self.model_ctrl.env.reset()
             # action = self.agent.act(obs)
             steps = 0
-            tasks = 0
+            goals = 0
             reward = 0
             done = False
             # make sure control agent acts greedy:
@@ -113,19 +114,23 @@ class MetaModel(Model):
                     obs, reward, done, _ = self.model_ctrl.env.step(ctrl_action)
                     ctrl_steps += 1
                     # goal reached ?
-                    if meta_action == self.model_ctrl.env.s:
+                    if self.model_ctrl.env.s != meta_action:
+                        # key picked up by chance?
+                        if not key(old_obs) and key(obs):
+                            key_history[ep] = 1
+                    else:
                         break
 
                 steps += ctrl_steps
                 self.agent.learn(key(old_obs), meta_action, reward, key(obs), done)
-                tasks += 1
+                goals += 1
                 if done:
                     break
-            opt_history[ep] = ep #+= tasks
-            steps_history[ep] = tasks
+            opt_history[ep] = ep #+= goals
+            steps_history[ep] = goals
             if (ep % 500) == 0 or ep == (episodes - 1):
                 print(
-                    f'ep: {ep} tasks: {tasks} '
+                    f'ep: {ep} goals: {goals} '
                     f'actions: {steps} reward: {reward} '
                     f'key: {key(obs)} door: {int(done)}')
             # undo control agent greedy mode
@@ -133,7 +138,7 @@ class MetaModel(Model):
 
         self.xaxis = opt_history
         self.yaxis = steps_history
-        return self.xaxis, self.yaxis
+        return opt_history, steps_history, key_history
 
     def train_runs(self, runs=10, episodes=3000, max_episode_steps=10000):
         """
@@ -144,21 +149,26 @@ class MetaModel(Model):
             episodes (int): Number of episodes to run
             max_episode_steps (int): Maximum number steps to run in each episode
         """
-        xaxis_lst = []
-        yaxis_lst = []
+        opt_history_lst = []
+        steps_history_lst = []
+        key_history_lst = []
         np.random.seed(0)
         random.seed(0)
         for run in range(runs):
             # Create new agent instance for every run to drop learned experience.
             self.agent = self.agent_class(**self.agent_args)
-            xaxis, yaxis = self.train(episodes=episodes,
+            opt, steps, keys = self.train(episodes=episodes,
                                      max_episode_steps=max_episode_steps)
-            xaxis_lst.append(xaxis)
-            yaxis_lst.append(yaxis)
+            opt_history_lst.append(opt)
+            steps_history_lst.append(steps)
+            key_history_lst.append(keys)
             # print("Final performance: {}".format(perf[-1]))
-        self.xaxis = np.mean(xaxis_lst, axis=0)
-        self.yaxis = np.mean(yaxis_lst, axis=0)
-        return self.xaxis, self.yaxis
+        opt_history = np.mean(opt_history_lst, axis=0)
+        steps_history = np.mean(steps_history_lst, axis=0)
+        key_history = np.mean(key_history_lst, axis=0)
+        self.xaxis = opt_history
+        self.yaxis = steps_history
+        return opt_history, steps_history, key_history
 
     def test(self, episodes, max_episode_steps):
         # make sure meta agent acts greedy:
@@ -172,11 +182,13 @@ class MetaModel(Model):
         steps_history = np.zeros(episodes)
         # Optimizatons history per episode
         opt_history = np.zeros(episodes)
+        # Key picked up by chance
+        key_history = np.zeros(episodes)
         key = lambda obs: obs[2]
 
         for ep in range(episodes):
             obs = self.model_ctrl.env.reset()
-            tasks = 0
+            goals = 0
             done = False
             actions = 0
             for _ in range(max_episode_steps):
@@ -186,18 +198,23 @@ class MetaModel(Model):
                     ctrl_agent_obs = (*self.model_ctrl.env.s, *meta_action)
                     # act in env, i.e. use action as goal in controller agent (model)
                     ctrl_action = self.model_ctrl.agent.act(ctrl_agent_obs)
+                    old_obs = obs
                     obs, _, done, _ = self.model_ctrl.env.step(ctrl_action)
                     actions += 1
                     # goal reached ?
-                    if meta_action == self.model_ctrl.env.s:
+                    if self.model_ctrl.env.s != meta_action:
+                        # key picked up by chance?
+                        if not key(old_obs) and key(obs):
+                            key_history[ep] = 1
+                    else:
                         break
 
-                tasks += 1
-                print(f'ep: {ep} task: {tasks} actions: {actions} key:{key(obs)} door:{int(done)}')
+                goals += 1
+                print(f'ep: {ep} goals: {goals} actions: {actions} key:{key(obs)} door:{int(done)}')
                 if done:
                     break
             opt_history[ep] = ep
-            steps_history[ep] = tasks
+            steps_history[ep] = goals
 
         # undo control agent greedy mode
         self.agent.epsilon = meta_old_eps
@@ -205,20 +222,17 @@ class MetaModel(Model):
         self.model_ctrl.agent.epsilon = ctrl_old_eps
         self.xaxis = opt_history
         self.yaxis = steps_history
-        return self.xaxis, self.yaxis
+        return opt_history, steps_history, key_history
 
-    def save_policy_plot(self, path=None, text=False):
+    def save_policy_plot(self, path=None, text=True):
         """ Visualizes a policy and value function given agent and environment."""
         cmap = clr.LinearSegmentedColormap.from_list('mycmap',
                                                          ['#FF0000',
                                                           '#000000',
                                                           '#008000'])
-        print(self.agent.Qtable)
-        print(self.env.obstacles)
         for key in range(self.agent.input_shape[0]):
             grid = np.zeros((self.env.height, self.env.width))
             high = np.max(self.agent.Qtable[key])
-            print(f'high: {high}')
             for obs in self.env.obstacles:
                 grid[obs[0]][obs[1]] = -high
             fig, ax = plt.subplots()
@@ -227,8 +241,9 @@ class MetaModel(Model):
                 grid[height][width] = self.agent.Qtable[key][i]
                 if text:
                     ax.text(width, height,
-                               f'\n{self.agent.Qtable[key][i]:04.2f}',
-                               ha="center", va="center", color="w")
+                               f'{self.agent.Qtable[key][i]:4.2f}',
+                               ha='center', va='center', color='w',
+                            fontsize='xx-small')
             im = ax.imshow(grid, cmap=cmap)
             ax.set_title(f'Meta QValue visualization (key = {key})')
             fig.tight_layout()
@@ -270,13 +285,18 @@ def create_meta_model(model_ctrl):
     model_meta = MetaModel(**args)
     return model_meta
 
+
 def train_meta_model(model, episodes):
-    model.train_runs(episodes=episodes, max_episode_steps=10000)
+    ep, goals, keys = model.train_runs(episodes=episodes, max_episode_steps=10000)
     model.save_agent(f'{model.path}.agent.npy')
     model.save_plot_data(f'{model.path}.plot.npy')
     model.save_plot(f'{model.path}.plot', episodes=episodes,
                          yscale='log', ybase=2, smooth=True,
-                         xlabel='Episodes', ylabel='Tasks')
+                         xlabel='Episodes', ylabel='Goals')
+    model.save_plot(f'{model.path}.train.key.plot', smooth=False,
+                    title='Key pick-up by chance',
+                    xlabel='Episode', ylabel='Key picked-up',
+                    xaxis=ep, yaxis=keys)
 
 
 def main():
@@ -289,11 +309,15 @@ def main():
     train_meta_model(model_meta, episodes=train_episodes)
     model_meta.load_agent(meta_agent_path)
     test_episodes = 10
-    model_meta.test(episodes=test_episodes, max_episode_steps=100)
+    ep, goals, keys = model_meta.test(episodes=test_episodes, max_episode_steps=100)
     model_meta.save_plot(f'{model_meta.path}.test.plot', episodes=test_episodes,
                     yscale=None, ybase=2, smooth=False,
-                    xlabel='Episodes', ylabel='Tasks')
-    model_meta.save_policy_plot(text=not env_big)
+                    xlabel='Episodes', ylabel='Goals')
+    model_meta.save_plot(f'{model_meta.path}.test.key.plot',
+                         smooth=False, title='Key pick-up by chance',
+                         xlabel='Episode', ylabel='Key picked-up',
+                         xaxis=ep, yaxis=keys)
+    model_meta.save_policy_plot()
 
 if __name__ == '__main__':
     main()

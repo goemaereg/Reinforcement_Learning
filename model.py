@@ -85,7 +85,7 @@ class Model():
                 print(f'First trial in {step} steps')
             elif ep == (episodes - 1):
                 print(f'Final trial in {step} steps')
-            elif ep % (episodes // 5) == 0:
+            elif (ep % 500) == 0:
                 print(f'Trial {ep:>5} in {step} steps')
         self.env.close()
         self.xaxis = opt_history[1:]
@@ -150,7 +150,8 @@ class Model():
                   xscale=None, xbase=10,
                   yscale=None, ybase=10,
                   title=None, subtitle=None,
-                  xlabel=None, ylabel=None):
+                  xlabel=None, ylabel=None,
+                  xaxis=None, yaxis=None):
         if smooth:
             # calculate smoothed plot (just to determine axis scale)
             smooth_avg = episodes // 100
@@ -176,8 +177,10 @@ class Model():
             psubtitle = f'{self.agent.name} performance on {self.env_name[:-3]}{self.env.roomsize}'
         pxlabel = xlabel if xlabel else 'Optimisation steps'
         pylabel = ylabel if ylabel else "Performance at {}".format(self.env_name)
-        save_plot(self.yaxis, path, psubtitle, ptitle, pxlabel, pylabel,
-                  xaxis=self.xaxis,
+        xaxis = xaxis if xaxis is not None else self.xaxis
+        yaxis = yaxis if yaxis is not None else self.yaxis
+        save_plot(yaxis, path, psubtitle, ptitle, pxlabel, pylabel,
+                  xaxis=xaxis,
                   interval_xaxis=n_plot_xscale,
                   interval_yaxis=n_plot_yscale,
                   xscale=xscale, xbase=xbase, yscale=yscale, ybase=ybase,
