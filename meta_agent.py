@@ -18,7 +18,7 @@ register(
     entry_point='gym_additions.envs:FourRoomsBigKeyDoorEnv',
     )
 
-# env_big = False
+env_big = False
 env_big = True
 
 if env_big:

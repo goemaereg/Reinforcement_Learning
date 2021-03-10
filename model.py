@@ -79,7 +79,6 @@ class Model():
                 opt_history[ep] += 1
                 if done:
                     break
-
                 steps_history[ep] = step
             if ep == 0:
                 print(f'First trial in {step} steps')
@@ -119,19 +118,36 @@ class Model():
         self.yaxis = perf
         return opt, perf
 
-    def task(self, goal, max_episode_steps=100):
-        reward = 0
-        steps = 0
-        done = False
-        info = {}
-        for _ in range(max_episode_steps):
-            obs = (*self.env.s, *goal)
-            action = self.agent.act(obs)
-            _, reward, done, info = self.env.step(action)
-            steps += 1
-            if goal == self.env.s:
-                break
-        return steps, reward, done, info
+    def test(self, episodes, max_episode_steps):
+        # make sure agent acts greedy:
+        old_eps = self.agent.epsilon
+        self.agent.epsilon = 0
+
+        # Steps history per episode
+        steps_history = np.zeros(episodes)
+        # Optimizatons history per episode
+        opt_history = np.zeros(episodes)
+
+        for ep in range(episodes):
+            obs = self.env.reset()
+            steps = 0
+            reward = 0
+            for _ in range(max_episode_steps):
+                action = self.agent.act(obs)
+                old_obs = obs
+                obs, reward, done, _ = self.env.step(action)
+                steps += 1
+                if done:
+                    break
+            print(f'ep: {ep} actions: {steps} reward:{reward}')
+            opt_history[ep] = ep
+            steps_history[ep] = steps
+
+        # undo agent greedy mode
+        self.agent.epsilon = old_eps
+        self.xaxis = opt_history
+        self.yaxis = steps_history
+        return opt_history, steps_history
 
     def load_agent(self, filename):
         self.agent.Qtable = np.load(filename)
