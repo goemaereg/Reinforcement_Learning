@@ -26,14 +26,14 @@ class FourRoomsEnv(gym.Env):
                 3: (0, -1),  # left
                 }
         self.terminal = (self.height-1,self.width-1) # terminal state
-        horizontal  = [[i, half] for i in range(self.width)]
-        vertical    = [[half, i] for i in range(self.height)]
-        self.obstacles = horizontal + vertical
+        horizontal  = {(i, half) for i in range(self.width)}
+        vertical    = {(half, i) for i in range(self.height)}
+        self.obstacles = horizontal | vertical
         # now opening the 4 passages
         # for state in [[quarter,half], [half,quarter], [half,self.height-quarter], [self.height-quarter,half]]:
         #     self.obstacles.remove(state)
-        for state in [[quarter,half], [half,quarter], [half,self.height-1-quarter], [self.height-1-quarter,half]]:
-            self.obstacles.remove(state)
+        openings = {(quarter,half), (half,quarter), (half,self.height-1-quarter), (self.height-1-quarter,half)}
+        self.obstacles -= openings
         self.start = (0,0)
         # begin in start state
         self.reset()
@@ -61,7 +61,8 @@ class FourRoomsEnv(gym.Env):
 
     def render(self, mode='human'):
         s = np.zeros((self.height, self.width), dtype=int).astype(str)
-        s[list(zip(*self.obstacles))] = 'X'
+        for obstacle in self.obstacles:
+            s[obstacle] = 'X'
         s[self.terminal] = 'T'
         s[self.start] = 'S'
         s[self.s] = '.'
@@ -111,7 +112,8 @@ class FourRoomsMinEnv(FourRoomsEnv):
 
     def render(self, mode='human'):
         s = np.zeros((self.height, self.width), dtype=int).astype(str)
-        s[list(zip(*self.obstacles))] = 'X'
+        for obstacle in self.obstacles:
+            s[obstacle] = 'X'
         s[list(zip(*self.terminals))] = 'T'
         s[self.start] = 'S'
         s[self.s] = '.'
@@ -142,12 +144,14 @@ class FourRoomsGoalEnv(gym.Env):
                 2: (1, 0),   # down
                 3: (0, -1),  # left
                 }
-        horizontal  = [[i, half] for i in range(self.width)]
-        vertical    = [[half, i] for i in range(self.height)]
-        self.obstacles = horizontal + vertical
+        horizontal = {(i, half) for i in range(self.width)}
+        vertical = {(half, i) for i in range(self.height)}
+        self.obstacles = horizontal | vertical
         # now opening the 4 passages
-        for state in [[quarter,half], [half,quarter], [half,self.height-1-quarter], [self.height-1-quarter,half]]:
-            self.obstacles.remove(state)
+        openings = {(quarter, half), (half, quarter),
+                    (half, self.height - 1 - quarter),
+                    (self.height - 1 - quarter, half)}
+        self.obstacles -= openings
         self.reset() # choose start and goal
 
     def reset(self):
@@ -158,7 +162,7 @@ class FourRoomsGoalEnv(gym.Env):
         self.s = self.start
         while True:
             self.goal = (np.random.randint(0,self.height), np.random.randint(0,self.width))
-            if not self.goal in self.obstacles + [ self.s ]:
+            if not self.goal in self.obstacles | { self.s }:
                 break
         return (*self.s, *self.goal)
 
@@ -166,8 +170,6 @@ class FourRoomsGoalEnv(gym.Env):
         """ Moves the agent in the action direction."""
         # Next, moving according to action
         x, y = self.moves[action]
-        # if (self.s[0]+x, self.s[1]+x) == (6, 3):
-        #     print('Ran into wall')
 
         if (self.s[0]+x, self.s[1]+y) not in self.obstacles:
             # move is allowed
@@ -183,7 +185,8 @@ class FourRoomsGoalEnv(gym.Env):
 
     def render(self, mode='human'):
         s = np.zeros((self.height, self.width), dtype=int).astype(str)
-        s[list(zip(*self.obstacles))] = 'X'
+        for obstacle in self.obstacles:
+            s[obstacle] = 'X'
         s[self.goal] = 'G'
         s[self.start] = 'S'
         s[self.s] = '.'
@@ -240,7 +243,8 @@ class FourRoomsKeyDoorEnv(FourRoomsEnv):
 
     def render(self, mode='human'):
         s = np.zeros((self.height, self.width), dtype=int).astype(str)
-        s[list(zip(*self.obstacles))] = 'X'
+        for obstacle in self.obstacles:
+            s[obstacle] = 'X'
         s[self.door] = 'D'
         s[self.key] = 'K'
         s[self.start] = 'S'

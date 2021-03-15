@@ -3,8 +3,8 @@ from sklearn.model_selection import ParameterGrid
 from model import HERModel
 
 
-# env_big = True
-env_big = False
+env_big = True
+# env_big = False
 env_name = 'FourRoomsGoalBig-v0' if env_big else 'FourRoomsGoal-v0'
 
 # grid = ParameterGrid({'subtraject_len': range(4, 64, 8)})
@@ -18,8 +18,6 @@ if __name__ == '__main__':
                     agent_class=QLearning, env_name=env_name,
                     env_big=env_big, **params)
         model = HERModel(**args)
-        print(model.env.render())
-        print(model.env.obstacles)
         episodes = 20000 if env_big else 3000
         model.train_runs(runs=runs, episodes=episodes)
         model.save_agent(f'{model.path}.train.agent.npy')

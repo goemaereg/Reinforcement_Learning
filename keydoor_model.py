@@ -8,8 +8,8 @@ import numpy as np
 from utils import my_argmax
 
 
-env_big = False
-# env_big = True
+# env_big = False
+env_big = True
 
 register(
     id='FourRoomsKeyDoorEnv-v0',
@@ -25,9 +25,22 @@ if env_big:
 else:
     env_name = 'FourRoomsKeyDoorEnv-v0'
 
+
+agent_args = {
+        'min_eps': 0.15,
+        'explo_horizon': 1,
+        'learn_rate': 0.15,
+        'explo_steps': 1,
+        'gamma': 0.9,
+        'lambda': 0.9,
+        'n': 10
+    }
+
 args_model = dict(model_name='keydoor',
-                agent_class=QLearning, env_name=env_name,
-                env_big=env_big)
+                  agent_class=QLearning,
+                  agent_args=agent_args,
+                  env_name=env_name,
+                  env_big=env_big)
 
 
 class KeyDoorModel(Model):
@@ -50,7 +63,7 @@ class KeyDoorModel(Model):
             high = 0
             for height in range(self.env.height):
                 for width in range(self.env.width):
-                    if [height, width] in self.env.obstacles:
+                    if (height, width) in self.env.obstacles:
                         continue
                     obs = (height, width, key)
                     action = my_argmax(self.agent.Qtable[obs])
@@ -77,7 +90,7 @@ class KeyDoorModel(Model):
 
 def main():
     model = KeyDoorModel(**args_model)
-    train_episodes = 3000
+    train_episodes = 20000 if env_big else 3000
     optimal = 60 if env_big else 18
     model.train_runs(episodes=train_episodes, max_episode_steps=10000)
     model.save_agent(f'{model.path}.train.agent.npy')

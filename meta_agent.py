@@ -18,8 +18,8 @@ register(
     entry_point='gym_additions.envs:FourRoomsBigKeyDoorEnv',
     )
 
-env_big = False
-# env_big = True
+# env_big = False
+env_big = True
 
 if env_big:
     env_name = 'FourRoomsBigKeyDoorEnv-v0'
@@ -28,7 +28,7 @@ if env_big:
     meta_agent_path = 'outputm/meta_Meta_FourRoomsBigKeyDoorEnv-v0_MetaAgent_perf_10.agent.npy'
 else:
     env_name = 'FourRoomsKeyDoorEnv-v0'
-    ctrl_agent_path = 'outputm/train_stl_28_HER_FourRoomsGoal-v0_QLearning_perf_3.agent.npy'
+    ctrl_agent_path = 'outputm/train_stl_28_HER_FourRoomsGoal-v0_QLearning_perf_3.train.agent.npy'
     ctrl_model_name = 'train_stl_28'
     meta_agent_path = 'outputm/meta_Meta_FourRoomsKeyDoorEnv-v0_MetaAgent_perf_3.agent.npy'
 
@@ -202,7 +202,7 @@ class MetaModel(Model):
                     ctrl_action = self.model_ctrl.agent.act(ctrl_agent_obs)
                     old_obs = obs
                     obs, _, done, _ = self.model_ctrl.env.step(ctrl_action)
-                    print(f'{pos(old_obs)} {policies[ctrl_action]} -> {pos(obs)}')
+                    # print(f'{pos(old_obs)} {policies[ctrl_action]} -> {pos(obs)}')
                     actions += 1
                     # goal reached ?
                     if self.model_ctrl.env.s != meta_action:
@@ -262,7 +262,7 @@ def create_meta_model(model_ctrl):
     actions = []
     for height in range(model_ctrl.env.height):
         for width in range(model_ctrl.env.width):
-            if [height, width] not in model_ctrl.env.obstacles:
+            if (height, width) not in model_ctrl.env.obstacles:
                 actions.append((height, width))
     action_space = spaces.Discrete(len(actions))
     shapes = ((observation_space.n,), action_space.n)
@@ -311,9 +311,9 @@ def main():
     # meta agent
     train_episodes=3000
     model_meta = create_meta_model(model_ctrl=model_ctrl)
-    # train_meta_model(model_meta, episodes=train_episodes)
-    # model_meta.load_agent(meta_agent_path)
-    test_episodes = 1#00
+    train_meta_model(model_meta, episodes=train_episodes)
+    model_meta.load_agent(meta_agent_path)
+    test_episodes = 100
     model_meta.load_agent(f'{model_meta.path}.agent.npy')
     ep, goals, keys = model_meta.test(episodes=test_episodes, max_episode_steps=100)
     model_meta.save_plot(f'{model_meta.path}.test.plot', episodes=test_episodes,

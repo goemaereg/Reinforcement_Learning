@@ -28,9 +28,14 @@ class Model():
             self.env = kwargs['env']
         else:
             self.env = gym.make(self.env_name)
+
         self.agent_class = agent_class
         if 'agent_args' in kwargs.keys():
             self.agent_args = kwargs['agent_args']
+            if 'env_shapes' not in self.agent_args:
+                shapes = (tuple([s.n for s in self.env.observation_space]),
+                          self.env.action_space.n)
+                self.agent_args['env_shapes'] = shapes
         else:
             shapes = (tuple([s.n for s in self.env.observation_space]),
                       self.env.action_space.n)
@@ -276,9 +281,7 @@ class HERModel(Model):
                 new_obs, reward, done, _ = self.env.step(action)
                 policies = {0: 'N', 1: 'E', 2: 'S', 3: 'W'}
                 pos = lambda obs: obs[:2]
-                print(f'{pos(obs)} {policies[action]} -> {pos(new_obs)}')
-                if [*pos(new_obs)] in self.env.obstacles:
-                    print('Ran into obstacle')
+                # print(f'{pos(obs)} {policies[action]} -> {pos(new_obs)}')
                 # use a binary and sparse reward from the environment: int(done)
                 # store transition in replay buffer
                 transition = (obs, action, reward, new_obs, done)
