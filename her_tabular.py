@@ -3,12 +3,12 @@ from sklearn.model_selection import ParameterGrid
 from model import HERModel
 
 
-env_big = True
-# env_big = False
+# env_big = True
+env_big = False
 env_name = 'FourRoomsGoalBig-v0' if env_big else 'FourRoomsGoal-v0'
 
 # grid = ParameterGrid({'subtraject_len': range(4, 64, 8)})
-grid = ParameterGrid({'subtraject_len': range(44,48, 8)})
+grid = ParameterGrid({'subtraject_len': range(28, 29, 8)})
 
 
 if __name__ == '__main__':
@@ -18,9 +18,17 @@ if __name__ == '__main__':
                     agent_class=QLearning, env_name=env_name,
                     env_big=env_big, **params)
         model = HERModel(**args)
-        # model.train_runs(runs=runs)
-        episodes = (model.env.height * model.env.width) ** 2 // 10
-        model.train(episodes=episodes, max_episode_steps=150000)
-        model.save_agent(f'{model.path}.agent.npy')
-        model.save_plot_data(f'{model.path}.plot.npy')
-        model.save_plot(f'{model.path}.plot')
+        print(model.env.render())
+        print(model.env.obstacles)
+        episodes = 20000 if env_big else 3000
+        model.train_runs(runs=runs, episodes=episodes)
+        model.save_agent(f'{model.path}.train.agent.npy')
+        model.save_plot_data(f'{model.path}.train.plot.npy')
+        model.save_plot(f'{model.path}.train.plot')
+
+        test_episodes = 10
+        model.test(episodes=test_episodes, max_episode_steps=100)
+        model.save_plot(f'{model.path}.test.plot',
+                        episodes=test_episodes,
+                        yscale=None, smooth=False,
+                        xlabel='Episodes', ylabel='Actions')

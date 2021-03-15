@@ -63,29 +63,28 @@ class Model():
         # Steps history per episode
         steps_history = np.zeros(episodes)
         # Optimizatons history per episode
-        opt_history = np.empty(episodes)
+        opt_history = np.zeros(episodes)
         for ep in range(episodes):
             if ep > 0:
                 opt_history[ep] = opt_history[ep - 1]
             else:
                 opt_history[ep] = 0
             obs = self.env.reset()
-            step = 0
-            for step in range(max_episode_steps):
+            for _ in range(max_episode_steps):
                 action = self.agent.act(obs)
                 old_obs = obs  # tuples don't have the copy problem
                 obs, reward, done, info = self.env.step(action)
                 self.agent.learn(old_obs, action, reward, obs, done)
+                steps_history[ep] += 1
                 opt_history[ep] += 1
                 if done:
                     break
-                steps_history[ep] = step
             if ep == 0:
-                print(f'First trial in {step} steps')
+                print(f'First trial in {steps_history[ep]} steps')
             elif ep == (episodes - 1):
-                print(f'Final trial in {step} steps')
+                print(f'Final trial in {steps_history[ep]} steps')
             elif (ep % 500) == 0:
-                print(f'Trial {ep:>5} in {step} steps')
+                print(f'Trial {ep:>5} in {steps_history[ep]} steps')
         self.env.close()
         self.xaxis = opt_history[1:]
         self.yaxis = steps_history[1:]  # first is purely random
@@ -167,7 +166,8 @@ class Model():
                   yscale=None, ybase=10,
                   title=None, subtitle=None,
                   xlabel=None, ylabel=None,
-                  xaxis=None, yaxis=None):
+                  xaxis=None, yaxis=None,
+                  xlineat=None, ylineat=None):
         if smooth:
             # calculate smoothed plot (just to determine axis scale)
             smooth_avg = episodes // 100
@@ -200,6 +200,7 @@ class Model():
                   interval_xaxis=n_plot_xscale,
                   interval_yaxis=n_plot_yscale,
                   xscale=xscale, xbase=xbase, yscale=yscale, ybase=ybase,
+                  xlineat=xlineat, ylineat=ylineat,
                   smooth_avg=smooth_avg, only_avg=only_avg)
 
 
@@ -273,6 +274,11 @@ class HERModel(Model):
                 action = self.agent.act(obs)
                 # execute action and observe new state
                 new_obs, reward, done, _ = self.env.step(action)
+                policies = {0: 'N', 1: 'E', 2: 'S', 3: 'W'}
+                pos = lambda obs: obs[:2]
+                print(f'{pos(obs)} {policies[action]} -> {pos(new_obs)}')
+                if [*pos(new_obs)] in self.env.obstacles:
+                    print('Ran into obstacle')
                 # use a binary and sparse reward from the environment: int(done)
                 # store transition in replay buffer
                 transition = (obs, action, reward, new_obs, done)
@@ -302,6 +308,7 @@ class HERModel(Model):
                 # store transition in replay buffer
                 transition = ((*state, *sampled_goal), action, reward,
                               (*new_state, *sampled_goal), done)
+
                 replay_buffer.push(*transition)
 
             # learn on N cycles of minibatches of size B

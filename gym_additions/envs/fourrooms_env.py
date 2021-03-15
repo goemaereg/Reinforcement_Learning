@@ -8,7 +8,7 @@ class FourRoomsEnv(gym.Env):
     Starting up left, goal in lower-right.
     The main challenge is that the reward is sparse (1_goal)
         """
-    def __init__(self, roomsize=10):
+    def __init__(self, roomsize=3):#10):
         self.roomsize = roomsize
         self.height = 2*self.roomsize +1 # +1 is obstacle width
         self.width = self.height
@@ -166,6 +166,9 @@ class FourRoomsGoalEnv(gym.Env):
         """ Moves the agent in the action direction."""
         # Next, moving according to action
         x, y = self.moves[action]
+        # if (self.s[0]+x, self.s[1]+x) == (6, 3):
+        #     print('Ran into wall')
+
         if (self.s[0]+x, self.s[1]+y) not in self.obstacles:
             # move is allowed
             self.s = self.s[0] + x, self.s[1] + y
@@ -228,6 +231,7 @@ class FourRoomsKeyDoorEnv(FourRoomsEnv):
             self.s = (max(0, self.s[0]), max(0, self.s[1]))
             self.s = (min(self.s[0], self.height - 1),
                       min(self.s[1], self.width - 1))
+
         if self.s == self.key:
             self.has_key = True
         done = self.has_key and (self.s == self.door)

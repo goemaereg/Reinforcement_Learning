@@ -19,11 +19,11 @@ register(
     )
 
 env_big = False
-env_big = True
+# env_big = True
 
 if env_big:
     env_name = 'FourRoomsBigKeyDoorEnv-v0'
-    ctrl_agent_path = 'outputm/train_stl_44_HER_FourRoomsGoalBig-v0_QLearning_perf_10.agent.npy'
+    ctrl_agent_path = 'outputm/train_stl_28_HER_FourRoomsGoalBig-v0_QLearning_perf_10.train.agent.npy'
     ctrl_model_name = 'train_stl_44'
     meta_agent_path = 'outputm/meta_Meta_FourRoomsBigKeyDoorEnv-v0_MetaAgent_perf_10.agent.npy'
 else:
@@ -103,18 +103,18 @@ class MetaModel(Model):
             self.model_ctrl.agent.epsilon = 0
 
             for _ in range(max_episode_steps):
-                meta_action = self.agent.act(key(obs))
+                meta_goal = self.agent.act(key(obs))
                 old_obs = obs  # tuples don't have the copy problem
                 ctrl_steps = 0
                 for _ in range(500):
 
-                    ctrl_agent_obs = (*self.model_ctrl.env.s, *meta_action)
+                    ctrl_agent_obs = (*self.model_ctrl.env.s, *meta_goal)
                     ctrl_action = self.model_ctrl.agent.act(ctrl_agent_obs)
                     # act in env, i.e. use action as goal in controller agent (model)
                     obs, reward, done, _ = self.model_ctrl.env.step(ctrl_action)
                     ctrl_steps += 1
                     # goal reached ?
-                    if self.model_ctrl.env.s != meta_action:
+                    if self.model_ctrl.env.s != meta_goal:
                         # key picked up by chance?
                         if not key(old_obs) and key(obs):
                             key_history[ep] = 1
@@ -122,7 +122,7 @@ class MetaModel(Model):
                         break
 
                 steps += ctrl_steps
-                self.agent.learn(key(old_obs), meta_action, reward, key(obs), done)
+                self.agent.learn(key(old_obs), meta_goal, reward, key(obs), done)
                 goals += 1
                 if done:
                     break
@@ -185,6 +185,8 @@ class MetaModel(Model):
         # Key picked up by chance
         key_history = np.zeros(episodes)
         key = lambda obs: obs[2]
+        pos = lambda obs: obs[:2]
+        policies = {0: 'N', 1: 'E', 2: 'S', 3: 'W'}
 
         for ep in range(episodes):
             obs = self.model_ctrl.env.reset()
@@ -200,6 +202,7 @@ class MetaModel(Model):
                     ctrl_action = self.model_ctrl.agent.act(ctrl_agent_obs)
                     old_obs = obs
                     obs, _, done, _ = self.model_ctrl.env.step(ctrl_action)
+                    print(f'{pos(old_obs)} {policies[ctrl_action]} -> {pos(obs)}')
                     actions += 1
                     # goal reached ?
                     if self.model_ctrl.env.s != meta_action:
@@ -247,7 +250,7 @@ class MetaModel(Model):
             im = ax.imshow(grid, cmap=cmap)
             ax.set_title(f'Meta QValue visualization (key = {key})')
             fig.tight_layout()
-            path = f'{self.path}.{key}.plot.png'
+            path = f'{self.path}.qtable.{key}.plot.png'
             plt.savefig(path)
 
 
@@ -288,11 +291,13 @@ def create_meta_model(model_ctrl):
 
 def train_meta_model(model, episodes):
     ep, goals, keys = model.train_runs(episodes=episodes, max_episode_steps=10000)
+    # ep, goals, keys = model.train(episodes=episodes, max_episode_steps=10000)
     model.save_agent(f'{model.path}.agent.npy')
-    model.save_plot_data(f'{model.path}.plot.npy')
-    model.save_plot(f'{model.path}.plot', episodes=episodes,
-                         yscale='log', ybase=2, smooth=True,
-                         xlabel='Episodes', ylabel='Goals')
+    model.save_plot_data(f'{model.path}.train.plot.npy')
+    model.save_plot(f'{model.path}.train.plot', episodes=episodes,
+                         yscale=None, ybase=2, smooth=True,
+                         xlabel='Episodes', ylabel='Goals',
+                         xaxis=ep, yaxis=goals, xlineat=2)
     model.save_plot(f'{model.path}.train.key.plot', smooth=False,
                     title='Key pick-up by chance',
                     xlabel='Episode', ylabel='Key picked-up',
@@ -306,9 +311,10 @@ def main():
     # meta agent
     train_episodes=3000
     model_meta = create_meta_model(model_ctrl=model_ctrl)
-    train_meta_model(model_meta, episodes=train_episodes)
-    model_meta.load_agent(meta_agent_path)
-    test_episodes = 10
+    # train_meta_model(model_meta, episodes=train_episodes)
+    # model_meta.load_agent(meta_agent_path)
+    test_episodes = 1#00
+    model_meta.load_agent(f'{model_meta.path}.agent.npy')
     ep, goals, keys = model_meta.test(episodes=test_episodes, max_episode_steps=100)
     model_meta.save_plot(f'{model_meta.path}.test.plot', episodes=test_episodes,
                     yscale=None, ybase=2, smooth=False,
