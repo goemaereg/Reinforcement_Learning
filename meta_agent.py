@@ -18,8 +18,8 @@ register(
     entry_point='gym_additions.envs:FourRoomsBigKeyDoorEnv',
     )
 
-# env_big = False
-env_big = True
+env_big = False
+# env_big = True
 
 if env_big:
     env_name = 'FourRoomsBigKeyDoorEnv-v0'
@@ -312,18 +312,18 @@ def main():
     train_episodes=3000
     model_meta = create_meta_model(model_ctrl=model_ctrl)
     train_meta_model(model_meta, episodes=train_episodes)
-    model_meta.load_agent(meta_agent_path)
-    test_episodes = 100
-    model_meta.load_agent(f'{model_meta.path}.agent.npy')
-    ep, goals, keys = model_meta.test(episodes=test_episodes, max_episode_steps=100)
-    model_meta.save_plot(f'{model_meta.path}.test.plot', episodes=test_episodes,
-                    yscale=None, ybase=2, smooth=False,
-                    xlabel='Episodes', ylabel='Goals')
-    model_meta.save_plot(f'{model_meta.path}.test.key.plot',
-                         smooth=False, title='Key pick-up by chance',
-                         xlabel='Episode', ylabel='Key picked-up',
-                         xaxis=ep, yaxis=keys)
-    model_meta.save_policy_plot()
+    # model_meta.load_agent(meta_agent_path)
+    # test_episodes = 100
+    # model_meta.load_agent(f'{model_meta.path}.agent.npy')
+    # ep, goals, keys = model_meta.test(episodes=test_episodes, max_episode_steps=100)
+    # model_meta.save_plot(f'{model_meta.path}.test.plot', episodes=test_episodes,
+    #                 yscale=None, ybase=2, smooth=False,
+    #                 xlabel='Episodes', ylabel='Goals')
+    # model_meta.save_plot(f'{model_meta.path}.test.key.plot',
+    #                      smooth=False, title='Key pick-up by chance',
+    #                      xlabel='Episode', ylabel='Key picked-up',
+    #                      xaxis=ep, yaxis=keys)
+    # model_meta.save_policy_plot()
 
 if __name__ == '__main__':
     main()
