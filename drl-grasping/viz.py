@@ -1,16 +1,23 @@
 from baselines.common import plot_util as pu
 import matplotlib.pyplot as plt
-import numpy as np
 
 
-def plot_results(results):
+def plot_results(title, xlabel, ylabel, filename, results):
     r = results[0]
-    plt.plot(np.cumsum(r.monitor.l), r.monitor.r)
-    plt.plot(np.cumsum(r.monitor.l), pu.smooth(r.monitor.r, radius=10))
+    plt.plot(r.progress['epoch'], r.progress['train/success_rate'])
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.savefig(filename)
 
 
 if __name__ == '__main__':
     seed = 0
-    log_path = '~/logs/PandaPickAndPlace_{}/'.format(seed)
     env_id = 'PandaPickAndPlace-v0'
-    results = pu.load_results('~/logs/cartpole-ppo')
+    plot_filename = f'{env_id}_{seed}_train'
+    log_path = f'logs/PandaPickAndPlace_{seed}'
+    results = pu.load_results(log_path)
+    title = env_id
+    xlabel = 'epochs'
+    ylabel = 'success rate'
+    plot_results(title, xlabel, ylabel, plot_filename, results)
