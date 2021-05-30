@@ -51,7 +51,9 @@ def train(seed, log_path, save_path, env_id, replay_strategy, total_timesteps, n
         env=env,
         seed=seed,
         total_timesteps=total_timesteps,
-        network='mlp', replay_strategy=replay_strategy
+        network='mlp',
+        replay_strategy=replay_strategy,
+        # override_params={'n_cycles': 10},
     )
 
     # save the model
@@ -61,9 +63,9 @@ def train(seed, log_path, save_path, env_id, replay_strategy, total_timesteps, n
 
 
 if __name__ == '__main__':
-    seed = 0
-    log_path = '~/logs/PandaPickAndPlace_{}/'.format(seed)
-    save_path = 'policy_PandaPickAndPlace'
+    seed = 2 #1 #0
+    log_path = f'logs_PandaPickAndPlace_seed{seed}/'
+    save_path = f'policy_PandaPickAndPlace_seed{seed}'
     env_id = 'PandaPickAndPlace-v0'
     replay_strategy = 'future'
     total_timesteps = 200000
