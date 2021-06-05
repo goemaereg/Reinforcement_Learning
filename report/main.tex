@@ -220,14 +220,82 @@ The highest level policy takes as input the current state and goal state provide
 Experiments in [\cite{levy2019learning}] compare performance of agents using policy hierarchies with 1 (i.e., flat) and more levels with agents using Q-learning [\cite{watkins1992q}] with HER in discrete tasks and DDPG [\cite{lillicrap2015continuous}] with HER in the continuous tasks. The empirical results show that the HAC framework can benefit from additional levels of hierarchy and that multi-level agents outperform flat agents.
 
 \section{Experiments} \label{sec:experiments}
-Literature study made it clear to me that hindsight experience replay is a key method to improve training of agents in sparse reward settings. In my experiments, I implemented HER in a Q-learning agent and measured training performance in a tabular gridworld setting as baseline. From there, I tried to improve performance using new ideas. I also did experiments with HER for a robotic control task to verify whether performance of hindsight experience replay would translate to a deep learning setting.
+Literature study made it clear to me that hindsight experience replay is a key method to improve training of agents in sparse reward settings. In my experiments, I implemented HER in a Q-learning agent and measured training performance in a tabular gridworld setting. I compared the results of tabular Q-learning with HER to a baseline of tabular Q-learning without HER. From there, I tried to improve performance using new ideas. I also did experiments with HER for a robotic control task to verify whether performance of hindsight experience replay would translate to a deep learning setting.
 
 \subsection{Tabular Q-Learning with hindsight}
+For this experiment, the task for the agent is to reach a position in a four-room environment in as few steps as possible. I used a small 3x3 \texttt{FourRoomsGoal-v0} environment and a larger 10x10 \texttt{FourRoomsGoalBig-v0} environment are used to compare how scaling up influences training efficiency. Both rooms are goal-oriented variations on the Minimalistic Gridworld Environment in [\cite{gym_minigrid}]. Fig. \ref{fig:tabular_fourroomsgoal_env} shows the \texttt{FourRoomsGoal-v0} environment.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.5\columnwidth]{img/FourRoomsGoal-v0.png}
+\caption{Goal-oriented 3x3 FourRoomsGoal-v0 environment.}
+\label{fig:tabular_fourroomsgoal_env}
+\end{figure}
+The setting of the experiment is:
+\begin{itemize}
+    \item Each training episode has random start and goal position.
+    \item A sparse reward $r = 1$ is returned if goal (red flag) is reached or $r = 0$ otherwise.
+\end{itemize}
+In Q-learning an agent learns from every transition. During this experiment, an agent continues an episode and only stops when the goal has been reached.
+In the hindsight experience replay experiments as defined in [\cite{andrychowicz2017hindsight}], good results were obtained using a \texttt{final} goal-sampling strategy where the final state in an episode is used for goal replacement in all experienced transitions of that episode. I use a slight variation on this algorithm in that I device an episode into \textbf{subtraject} where for all transitions in that subtraject the \texttt{final} state of that subtraject is selected for goal replacement. The subtraject length is an hyperparameter then and using a grid search I tried to find the length which results in the optimal performance, i.e. the least number of steps to reach the goal state. The resulting algorithm for tabular Q-Learning with hindsight is then:
+\begin{itemize}
+\item Episodes are divided in sub-trajects
+\item For each transition in sub-traject
+    \begin{itemize}
+    \item Store the transition in a replay buffer
+    \item Sample the final goal from sub-traject and replace each goal in a duplicate of the transition
+    \item Store the modified duplicate in the replay buffer
+    \end{itemize}
+\item For each episode, sample a mini-batch of transitions from the replay buffer
+\item Update the agent's QA-table with the sampled transitions
+\end{itemize}
+The results of tabular Q-Learning with and without hindsight experience in the \textit{3x3 FourRoomsGoal-v0} environment are shown in Fig. \ref{fig:experiment_fourroomsgoal_learning_performance}.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\columnwidth]{img/exp_tabular_her_fourroom_small.png}
+\caption{Learning curve of tabular Q-learning with and without HER for the 3x3 FourRoomsGoal-v0 environment. The performance is measured in number of episode steps required to reach target in function of optimization steps of the Q-learning agent. The results show the average performance over 10 runs of 3000 episodes each. The sub-trajectory length for Q-learning with HER equals 28 steps.}
+\label{fig:experiment_fourroomsgoal_learning_performance}
+\end{figure}
+
+It's clear that Q-learning with HER outperforms Q-learning without HER. HER has faster learning and converges faster using less optimization steps. The reason for measuring performance in function of optimization steps and not in function of the number of episodes is to have a more honest comparison between HER and non-HER experiments. HER can do more optimizations per episode because it samples mini-batches of transitions from the experience replay buffer. In Fig. \ref{fig:experiment_fourroomsgoal_learning_performance} a clear \textit{shift} to the right of both curves can be noticed. This artifact is due to a smoothing algorithm which smooths results over 30 periods. This shift is less pronounced for HER because it learns faster and quickly requires less optimization steps per episode. The learning curve converges to a value of about 6 steps. This is on average the distance between the randomly assigned start and goal positions. Best case this distance is 1 step and worst case it is 12 steps.
+
+The results of tabular Q-Learning with and without hindsight experience in the \textit{10x10 FourRoomsGoalBig-v0} environment are shown in Fig. \ref{fig:experiment_fourroomsgoalbig_learning_performance}. It's clear that Q-learning with HER clearly outperforms Q-learning without HER. The difference is even more pronounced that in the smaller environment. Again HER converges faster than non-HER as HER does more optimizations per episode. The HER learning curve seems to converge to a value towards 200 although the curve is not yet flat after 3 million optimization steps. In the bigger fourrooms environment, best case distance is 1 step and worst case distance is 40 steps. On average this would lead to an optimal value of 20 steps. An explanation to the difference between the actual curve and optimal value could be that the agent's '$\epsilon$-greedy algorithm part of the time still explores and doesn't always choose the best action. 
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\columnwidth]{img/exp_tabular_her_fourroom_big.png}
+\caption{Learning curve of tabular Q-learning with and without HER for the 10x10 FourRoomsGoalBig-v0 environment. The performance is measured in number of episode steps required to reach target in function of optimization steps of the Q-learning agent. The results show the average performance over 10 runs of 20000 episodes each. The sub-trajectory length for Q-learning with HER equals 44 steps.}
+\label{fig:experiment_fourroomsgoalbig_learning_performance}
+\end{figure}
+
+As mentioned before, I use a variation of the HER algorithm in which episodes are divided into subtrajects with the subtraject length used as a hyperparameter. I performed a grid search for both environments used in the experiments to find the optimal value, i.e. a subtraject length that minimizes the number of steps needed to reach the goal position in the fourroom environments. The results of this grid search are shown in Fig. \ref{fig:experiment_subtraject_gridsearch}. 
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[t]{0.45\columnwidth}
+\centering
+\includegraphics[width=1.0\textwidth]{img/exp_tabular_her_gridsearch_small.png}
+\caption{FourRoomsGoal-v0 performance in function of subtraject length.}
+\label{fig:experiment_subtraject_gridsearch_small}
+\end{subfigure}
+\hspace{0em}
+\begin{subfigure}[t]{0.45\columnwidth}
+\centering
+\includegraphics[width=1.0\textwidth]{img/exp_tabular_her_gridsearch_big.png}
+\caption{FourRoomsGoalBig-v0 performance in function of subtraject length.}
+\label{fig:experiment_subtraject_gridsearch_big}
+\end{subfigure}
+\caption{Grid search results on the optimal hyperparameter subtraject length parameter.}
+\label{fig:experiment_subtraject_gridsearch}
+\end{figure}
+
+Although the plots are somewhat noisy due to the coarse granularity of subtraject values in the grid search, a clear trend can be noticed. For the \textit{FourRoomsGoal-v0} environment (Fig. \ref{fig:experiment_subtraject_gridsearch_small}) an optimal value of 28 was found and for the \textit{FourRoomsGoalBig-v0} environment (Fig. \ref{fig:experiment_subtraject_gridsearch_big}) this value was 44. To be sure that the values are not local minima, a more extensive grid search would be required.
 
 \subsection{Option Learning with Hindsight}
+
 \subsection{From tabular to deep learning for motor control task}
 \section{Conclusion} \label{sec:conclusion}
 \section{Future work} \label{sec:future_work}
+
 \newpage
 \printbibliography
 \end{document}
