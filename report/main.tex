@@ -207,14 +207,25 @@ The option-critic architecture works according to a \textit{call-and-return opti
 The proposal in [\cite{bacon2017option}] developed a general gradient-based approach for learning simultaneously the intra-option policies and termination functions, as well as the policy over options, in order to optimize a performance objective for the task at hand.
 
 \subsection{Learning Multi-Level Hierarchies with Hindsight}
-Multi-level hierarchies have the potential to accelerate learning in sparse reward tasks because they can divide a problem into a set of short horizon sub-problems. The proposal in [\cite{levy2019learning}] introduces a framework that can learn multiple levels of policies in parallel, so the simpler sub-problems can be solved simultaneously.
+Multi-level hierarchies have the potential to accelerate learning in sparse reward tasks because they can divide a problem into a set of short horizon sub-problems. The proposal in [\cite{levy2019learning}] introduces a framework that can learn multiple levels of policies in parallel, so the simpler sub-problems can be solved simultaneously. The framework, called \textit{hierarchical actor-critic} (HAC), has a hierarchical architecture and a method for learning multiple levels of goal-conditioned policies in parallel given sparse rewards. The number of levels in the hierarchy is a hyperparameter chosen by the user.
+-
+The highest level policy takes as input the current state and goal state provided by the task and outputs a sub-goal state. This state is used as the goal state for the policy at the next level down. The policy at that level takes as input the current state and the goal state provided by the level above and outputs its own sub-goal state for the next level below to achieve. This process continues until the lowest level is reached. The lowest level then takes as input the current state and the goal state provided by the level above and outputs a primitive action. Further, each level has a certain number of attempts to achieve its goal state. When the level either runs out of attempts or achieves its goal state, execution at that level ceases and the level above outputs another sub-goal. Fig. \ref{fig:mutilevel_her_example} shows an example of an agent using a 3-level policy hierarchy to move through rooms to reach its target.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\columnwidth]{img/MultiLevelHER_example.png}
+\caption{An ant agent uses a 3-level hierarchy to traverse though rooms to reach its goal, represented by the yellow cube. $\Pi_2$ uses as input the current state (joint positions $\theta$ and velocities $\dot{\theta}$) and goal state (yellow box) and outputs a sub-goal state (green box) for $\Pi_1$ to achieve. $\Pi_1$ takes in the current state and its goal state (green box) and outputs a sub-goal state (purple box) for $\Pi_0$ to achieve. $\Pi_0$ takes in the current state and goal state (purple box) and outputs a vector of joint torques}
+\label{fig:mutilevel_her_example}
+\end{figure}
+
+Experiments in [\cite{levy2019learning}] compare performance of agents using policy hierarchies with 1 (i.e., flat) and more levels with agents using Q-learning [\cite{watkins1992q}] with HER in discrete tasks and DDPG [\cite{lillicrap2015continuous}] with HER in the continuous tasks. The empirical results show that the HAC framework can benefit from additional levels of hierarchy and that multi-level agents outperform flat agents.
 
 \section{Experiments} \label{sec:experiments}
-\subsection{Tabular Q-Learning}
-\subsubsection{Tabular Q-Learning with Hindsight}
-\subsubsection{Option Learning with Hindsight}
-\subsection{Deep Learning}
-\subsubsection{From tabular to deep learning for motor control task}
+Literature study made it clear to me that hindsight experience replay is a key method to improve training of agents in sparse reward settings. In my experiments, I implemented HER in a Q-learning agent and measured training performance in a tabular gridworld setting as baseline. From there, I tried to improve performance using new ideas. I also did experiments with HER for a robotic control task to verify whether performance of hindsight experience replay would translate to a deep learning setting.
+
+\subsection{Tabular Q-Learning with hindsight}
+
+\subsection{Option Learning with Hindsight}
+\subsection{From tabular to deep learning for motor control task}
 \section{Conclusion} \label{sec:conclusion}
 \section{Future work} \label{sec:future_work}
 \newpage
