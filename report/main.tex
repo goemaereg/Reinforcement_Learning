@@ -311,12 +311,12 @@ In this experiment, I created an \textit{FourRoomsKeyDoorEnv-v0} environment wit
 
 The setting of the experiment is as follows:
 \begin{description}
-\item[Environment] - Four rooms with key and door placed at fixed positions. The observation space is described by (position, has-key) where has-key indicates whether the key was picked up previously. The reward function is r = 1 when agent has key and reaches door position, r = 0 otherwise.
-\item[Meta-agent] Q-Learning agent. The meta-agent is training a policy to select the best goal, based on the state, which is whether the key has been picked up or not. The high-level goals learned are actually the options used as sub-goals for the controller agent. 
-\item[Controller-agent] Q-Learning with HER agent. The controller agent is pre-trained to reach goals. It's policy is trained on  state is described by (position, goal) and its low-level actions are basic movements \texttt{up, down, left, right}.
+\item[Environment] Four rooms with key and door placed at fixed position. The observation space is described by (position, key) with key as picked-up flag. The reward function is $r = (key==1 \And position==door)$
+\item[Meta-agent] Q-Learning agent. The meta-agent trains a policy to select the best goal, based on the state, i.e. key being picked up or not. The high-level goals learned are actually the options used as sub-goals for the controller agent. 
+\item[Controller-agent] Q-Learning with HER agent. The controller agent is pretrained to reach goals. It's policy is trained on state described by (position, goal) and its low-level actions are basic movements \texttt{up, down, left, right}.
 \end{description}
 
-With the described setting it's straight forward to train the meta-agent just as any other Q-learning agent. Options are generated according to an $\epsilon$-greedy policy to train the meta-agent, while the controller agent is acting greedy according to its pre-trained policy. The training performance of the meta-agent is shown in Fig. \ref{fig:exp_option_her_training_small} for the small environment and in Fig. \ref{fig:exp_option_her_training_big} for the big environment.
+With the described setting it's straight forward to train the meta-agent as a Q-learning agent. Options are generated according to an $\epsilon$-greedy policy, while the controller agent is acting greedy according to its pretrained policy. The training performance of the meta-agent is shown in Fig. \ref{fig:exp_option_her_training_small} for the small environment.  The learning curve shows the number of options or high-level goals taken to reach the door with the key. It converges to slightly above 2 options (optimal is 2, i.e. the key and door option). The agent still explores explaining why on average the number is slightly above 2. Fig. shows the training performance \ref{fig:exp_option_her_training_big} for the big environment. Similar results are obtained.
 
 \begin{figure}[ht]
 \centering
@@ -332,21 +332,48 @@ With the described setting it's straight forward to train the meta-agent just as
 \label{fig:exp_option_her_training_big}
 \end{figure}
 
+As the meta-agent only has two states and as many actions as potential goals, equaling the state space, the agent conceptually learns in two different Qtable planes, one where the key hasn't been picked up yet, and one where the key has been picked up. These Qtable planes are shown for the \textit{FourRoomsKeyDoorEnv} environment in Fig. \ref{fig:exp_option_her_qtable_small_key0} (key not picked up) and in Fig. \ref{fig:exp_option_her_qtable_small_key1} where the key has been picked up. Looking at the state-action values in Fig. \ref{fig:exp_option_her_qtable_small_key0}, its clear that the best option to take is goal position where the key is located in case it hasn't been picked up yet. Looking at Fig. \ref{fig:exp_option_her_qtable_small_key1}, the best option to take is the door position in case the key has been picked up. We can conclude that the meta-agent has learned the best options to perform the task optimally. Results for the bigger \textit{FourRoomsBigKeyDoorEnv} environment are similar and the same two options are discovered.
+
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\columnwidth]{img/exp_option_her_qtable_small_key0.png}
-\caption{Qtable of meta-agent option learning for the FourRoomsKeyDoorEnv environment.}
+\caption{Qtable of the option learning meta-agent for the FourRoomsKeyDoorEnv environment.}
 \label{fig:exp_option_her_qtable_small_key0}
 \end{figure}
 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\columnwidth]{img/exp_option_her_qtable_small_key1.png}
-\caption{Qtable of meta-agent option learning for the FourRoomsKeyDoorEnv environment.}
+\caption{Qtable of the option learning meta-agent for the FourRoomsKeyDoorEnv environment.}
 \label{fig:exp_option_her_qtable_small_key1}
 \end{figure}
 
+After being trained, according to the meta-agent's Qtable values, it should perform optimal. The results of test runs with the trained meta-agent confirm this claim. Fig. \ref{fig:exp_option_her_test_perf_small} shows that the meta-agent only needs two high-level options to reach the door with the key for the small \textit{FourRoomsKeyDoorEnv}. Fig. \ref{fig:exp_option_her_test_pick_small} gives the chance that the key was picked up by accident, i.e. that a goal was chosen by the meta-agent which lead the controller agent over a path containing the key position but not landing on the key position. This would mean the key was picked up by chance, rather than following an optimal policy. As can be seen, this was not the case during test. Similar results where obtained for the bigger  \textit{FourRoomsBigKeyDoorEnv} environment.
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}[t]{0.45\columnwidth}
+\centering
+\includegraphics[width=1.0\textwidth]{img/exp_option_her_test_perf_small.png}
+\caption{FourRoomsKeyDoorEnv-v0 meta-agent performance as number of options to target per test episode.}
+\label{fig:exp_option_her_test_perf_small}
+\end{subfigure}
+\hspace{0em}
+\begin{subfigure}[t]{0.45\columnwidth}
+\centering
+\includegraphics[width=1.0\textwidth]{img/exp_option_her_test_pick_small.png}
+\caption{FourRoomsKeyDoorEnv-v0 meta-agent ‘key pick-up by chance’ incidence per test episode.}
+\label{fig:exp_option_her_test_pick_small}
+\end{subfigure}
+\caption{FourRoomsKeyDoorEnv-v0 meta-agent test performance.}
+\label{fig:exp_option_her_test_small}
+\end{figure}
+
+This experiment showed that we can train a Q-learning meta-agent to discover options to give to a pretrained controller agent performing the low-level actions to reach those options in order to perform more complex tasks than just reaching a single goal, and this in sparse reward setting using intrinsic motivation. 
+
 \subsection{From tabular to deep learning for motor control task}
+
+
 \section{Conclusion} \label{sec:conclusion}
 \section{Future work} \label{sec:future_work}
 
