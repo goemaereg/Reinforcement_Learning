@@ -65,7 +65,7 @@ I believe the contribution of my work to to be
     \item proposing potential research areas to improve HER + DRL
 \end{itemize}{}
 
-In Section \ref{sec:literature_study}, I present related work, along with intrinsic motivation techniques and other approaches to learn from multiple signals. In Section \ref{sec:experiments}, I provide experiments in a tabular setting and deep setting to validate existing and proposed techniques. In Section \ref{sec:conclusion}, I discuss conclusions drawn from experiments. Finally, in Section \ref{sec:future_work}, I propose potential future work to explore and improve Intrinsic Motivation in Reinforcement Learning.
+In Section \ref{sec:literature_study}, I present related work, along with intrinsic motivation techniques and other approaches to learn from multiple signals. In Section \ref{sec:experiments}, I provide experiments in a tabular setting and deep setting to validate existing and proposed techniques. Finally, in Section \ref{sec:future_work}, I propose potential future work to explore and improve Intrinsic Motivation in Reinforcement Learning.
 
 \section{Literature study} \label{sec:literature_study}
 
@@ -372,9 +372,58 @@ After being trained, according to the meta-agent's Qtable values, it should perf
 This experiment showed that we can train a Q-learning meta-agent to discover options to give to a pretrained controller agent performing the low-level actions to reach those options in order to perform more complex tasks than just reaching a single goal, and this in sparse reward setting using intrinsic motivation. 
 
 \subsection{From tabular to deep learning for motor control task}
+It would be great if we could apply the ideas from a discrete tabular Q-learning setting to a more complex, continuous deep learning setting for motor control task.  In [\cite{plappert2018multi}], a set of challenging continuous control tasks are introduced which all have binary sparse rewards and follow a multi-goal reinforcement learning framework using hindsight experience. In this experiment I tried to reproduce the results of the paper and learn about possible new ideas for future research (see \ref{sec:future_work}). The setting of the experiment is:
+\begin{itemize}
+    \item Perform a robotic control task using deep RL.
+    \begin{enumerate}
+        \item Move robot gripper to an object
+        \item Pick up the object
+        \item Move the object to a target place
+    \end{enumerate}
+    \item OpenAI-baselines [\cite{baselines}] for learning algorithms DDPG and HER.
+    \item Free OpenAI Gym Franka Emika Panda [\cite{gallouedec2021multi}] robot environment based on PyBullet. 
+    \item Sparse rewards: r = 1 if task is achieved, 0 otherwise.
+\end{itemize}
 
+Experiments in [\cite{plappert2018multi}] require Mujoco robot environments, which cannot be used due to the license costs. Instead I used the Panda robot environment. Fig.\ref{fig:PandaPickAndPlace} shows PandaPickAndPlace-v1.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.6\columnwidth]{img/PandaPickAndPlace-v1.png}
+\caption{PandaPickAndPlace-v1 environment.}
+\label{fig:PandaPickAndPlace}
+\end{figure}
+There are two versions of the PandaPickAndPlace environtment. I initially trained an agent with version 0. Version 1 has increased friction on the object for grabbing. For both environments, I trained the agent using DDPG + HER for 3 runs with different random seeds. Each run has 50 epochs of training for 1 million of time steps in total. The success rate for training is shown in Fig. \ref{fig:exp_deep_train}, with the version 1 environment performing best.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.8\columnwidth]{img/exp_deep_train.png}
+\caption{Success rate for training in function of episodes in PandaPickAndPlace-v0 and PandaPickAndPlace-v1 environment.}
+\label{fig:exp_deep_train}
+\end{figure}
 
-\section{Conclusion} \label{sec:conclusion}
+To compare results with the experiments in [\cite{plappert2018multi}], we need to look at test results. The success rate for testing is shown in Fig. \ref{fig:exp_deep_test}. With version 0 of the environment, we're only successful half of the time, where for version 1, the task of picking and placing the object by the robot is performed successfully after about 50 periods of training.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.8\columnwidth]{img/exp_deep_test.png}
+\caption{Success rate for testing in function of episodes in PandaPickAndPlace-v0 and PandaPickAndPlace-v1 environment.}
+\label{fig:exp_deep_test}
+\end{figure}
+
+My results compare nicely with the results of experiments done by the author [\cite{gallouedec2021multi}] of the Panda environment, which are shown in Fig. \ref{fig:exp_deep_test_gallouedec}. The results from [\cite{plappert2018multi}] are shown in Fig. \ref{fig:exp_deep_test_plappert} and seem to converge a bit faster than my own results but equally converge to nearly $100\%$ success rate after 50 episodes of training.
+\begin{figure}[ht]
+\centering
+\includegraphics[width=1.0\columnwidth]{img/exp_deep_test_gallouedec.png}
+\caption{Success rate for testing in function of episodes for FetchPickAndPlace  environment in [\cite{gallouedec2021multi}].}
+\label{fig:exp_deep_test_gallouedec}
+\end{figure}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\columnwidth]{img/exp_deep_test_plappert.png}
+\caption{Success rate for testing in function of episodes for FetchPickAndPlace  environment in [\cite{plappert2018multi}].}
+\label{fig:exp_deep_test_plappert}
+\end{figure}
+
+The results of my experiments show that we can apply the ideas from a discrete tabular Q-learning setting to a more complex, continuous deep learning setting for motor control task, In this experiment I reproduced the results of the paper [\cite{plappert2018multi}]. I will propose some possible future research in section \ref{sec:future_work}).
+
 \section{Future work} \label{sec:future_work}
 
 \newpage
