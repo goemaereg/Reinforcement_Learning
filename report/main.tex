@@ -83,7 +83,7 @@ Intrinsic Motivation addresses a number of challenges of standard RL:
 
 IM offers a greater learning flexibility, through the use of a more general reward function, allowing to tackle the challenges raised above when only an extrinsic reward is used.
 
-The RL framework can be reformulated, as done by [\cite{singh2010intrinsically}] and [\cite{barto2004intrinsically}], to incorporate IM. A distinction is made between a primary reward and a secondary reward signals. The primary reward signal is the standard extrinsic reward returned by the environment. The secondary signal is a local reward computed by the agent and thus internal or intrinsic to that agent. This new RL model can be seen in  Fig. \ref{fig:new_rl_model}.
+The RL framework can be reformulated, as done by [\cite{singh2010intrinsically}] and [\cite{barto2004intrinsically}], to incorporate IM. A distinction is made between primary reward and secondary reward signals. The primary reward signal is the standard extrinsic reward returned by the environment. The secondary signal is a local reward computed by the agent and thus internal or intrinsic to that agent. This new RL model can be seen in  Fig. \ref{fig:new_rl_model}.
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.9\columnwidth]{img/New-model-of-RL-integrating-IM-adapted-from-Singh-et-al-2010_W640.jpg}
@@ -97,7 +97,7 @@ of an intrinsic reward $r_{int}$ and the extrinsic reward $r_{ext}$ [\cite{burda
 r = \alpha \cdot r_{int} + \beta \cdot r_{ext}
 \end{equation*}
 
-This paper [\cite{aubret2019survey} proposes a classification that emphasizes on two major kinds of intrinsic motivation in reinforcement learning: \textit{knowledge acquisition} explained in \ref{subsubsec:knowledge_acquisition}, and \textit{skill learning} detailed in \ref{subsubsec:skill_learning}. The classification is summarized in Table \ref{tab:classification}.
+This paper [\cite{aubret2019survey}] proposes a classification that emphasizes on two major kinds of intrinsic motivation in reinforcement learning: \textit{knowledge acquisition} explained in \ref{subsubsec:knowledge_acquisition}, and \textit{skill learning} detailed in \ref{subsubsec:skill_learning}. The classification is summarized in Table \ref{tab:classification}.
 
 The large majority of research in the field is focused on knowledge acquisition. However, my interest is focused on skill learning and this was also the focus of my research project, both in subsequent literature study, experiments and ideas on future research work.
 
@@ -186,11 +186,11 @@ This paper [\cite{andrychowicz2017hindsight}] proposes a novel technique called 
 \caption{Learning curves for multi-goal setup in case of DDPG with and without HER. DDPG with HER solves the task confirming that HER is crucial for learning from sparse, binary rewards.}
 \label{fig:her_robot_experiment}
 \end{figure}
-Experiments reported in [\cite{andrychowicz2017hindsight}] and shown in Fig. \ref{fig:her_robot_experiment} indicate that HER enables RL to use spare rewards combined with off-policy algorithms. Robotic arm experiments show that trained policies in simulation perform well in real-life without fine-tuning (trained with off-policy RL algorithm).
+Experiments reported in [\cite{andrychowicz2017hindsight}] and shown in Fig. \ref{fig:her_robot_experiment} indicate that HER enables RL to use sparse rewards combined with off-policy algorithms. Robotic arm experiments show that trained policies in simulation perform well in real-life without fine-tuning (trained with off-policy RL algorithm).
 HER enables RL algorithms to use sparse rewards. A limitation of HER is that it can be applied as long as a goal space can be defined from a state space. HER may be seen as a form of implicit curriculum as the goals used for replay naturally shift from ones which are simple to achieve even by a random agent to more difficult ones.
 
 \subsection{The Option-Critic Architecture}
-Temporal abstraction allows representing knowledge about courses of action that take place at different time scales. In reinforcement learning, options [\cite{sutton1999between}]] provide a framework for defining such courses of action and for seamlessly learning and planning with them. Based on the policy gradient theorem [\cite{sutton2000policy}], the proposal in [\cite{bacon2017option}] derives new results which enable a gradual learning process of intra-option policies and termination functions, simultaneously with the policy over them. This approach works naturally with both linear and non-linear function approximators, under discrete or continuous state and action spaces. The option critic architecture as proposed by [\cite{bacon2017option}] is shown in Fig. \ref{fig:option_critic_arch}. 
+Temporal abstraction allows representing knowledge about courses of action that take place at different time scales. In reinforcement learning, options [\cite{sutton1999between}] provide a framework for defining such courses of action and for seamlessly learning and planning with them. Based on the policy gradient theorem [\cite{sutton2000policy}], the proposal in [\cite{bacon2017option}] derives new results which enable a gradual learning process of intra-option policies and termination functions, simultaneously with the policy over them. This approach works naturally with both linear and non-linear function approximators, under discrete or continuous state and action spaces. The option critic architecture as proposed by [\cite{bacon2017option}] is shown in Fig. \ref{fig:option_critic_arch}. 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\columnwidth]{img/OptionCriticArch.png}
@@ -213,17 +213,17 @@ The highest level policy takes as input the current state and goal state provide
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\columnwidth]{img/MultiLevelHER_example.png}
-\caption{An ant agent uses a 3-level hierarchy to traverse though rooms to reach its goal, represented by the yellow cube. $\Pi_2$ uses as input the current state (joint positions $\theta$ and velocities $\dot{\theta}$) and goal state (yellow box) and outputs a sub-goal state (green box) for $\Pi_1$ to achieve. $\Pi_1$ takes in the current state and its goal state (green box) and outputs a sub-goal state (purple box) for $\Pi_0$ to achieve. $\Pi_0$ takes in the current state and goal state (purple box) and outputs a vector of joint torques}
+\caption{An ant agent uses a 3-level hierarchy to traverse though rooms to reach its goal, represented by the yellow cube. $\Pi_2$ uses as input the current state (joint positions $\theta$ and velocities $\dot{\theta}$) and goal state (yellow box) and outputs a sub-goal state (green box) for $\Pi_1$ to achieve. $\Pi_1$ takes in the current state and its goal state (green box) and outputs a sub-goal state (purple box) for $\Pi_0$ to achieve. $\Pi_0$ takes in the current state and goal state (purple box) and outputs a vector of joint torques.}
 \label{fig:mutilevel_her_example}
 \end{figure}
 
 Experiments in [\cite{levy2019learning}] compare performance of agents using policy hierarchies with 1 (i.e., flat) and more levels with agents using Q-learning [\cite{watkins1992q}] with HER in discrete tasks and DDPG [\cite{lillicrap2015continuous}] with HER in the continuous tasks. The empirical results show that the HAC framework can benefit from additional levels of hierarchy and that multi-level agents outperform flat agents.
 
 \section{Experiments} \label{sec:experiments}
-Literature study made it clear to me that hindsight experience replay is a key method to improve training of agents in sparse reward settings. In my experiments, I implemented HER in a Q-learning agent and measured training performance in a tabular gridworld setting. I compared the results of tabular Q-learning with HER to a baseline of tabular Q-learning without HER. From there, I tried to improve performance using new ideas. I also did experiments with HER for a robotic control task to verify whether performance of hindsight experience replay would translate to a deep learning setting.
+Literature study made it clear to me that hindsight experience replay is a key method to improve training of agents in sparse reward settings. In my experiments, I implemented HER and used a Q-learning agent to measure training performance in a tabular gridworld setting. I compared the results of tabular Q-learning with HER to a baseline of tabular Q-learning without HER. From there, I tried to improve performance using new ideas. I also did experiments with HER for a robotic control task to verify whether performance of hindsight experience replay would translate to a deep learning setting.
 
 \subsection{Tabular Q-Learning with hindsight} \label{subsec:exp_tab_her}
-For this experiment, the task for the agent is to reach a position in a four-room environment in as few steps as possible. I used a small 3x3 \texttt{FourRoomsGoal-v0} environment and a larger 10x10 \texttt{FourRoomsGoalBig-v0} environment are used to compare how scaling up influences training efficiency. Both rooms are goal-oriented variations on the Minimalistic Gridworld Environment in [\cite{gym_minigrid}]. Fig. \ref{fig:tabular_fourroomsgoal_env} shows the \texttt{FourRoomsGoal-v0} environment.
+For this experiment, the task for the agent is to reach a position in a four-room environment in as few steps as possible. I used a small 3x3 \texttt{FourRoomsGoal-v0} environment and a larger 10x10 \texttt{FourRoomsGoalBig-v0} environment to compare how scaling up influences training efficiency. Both rooms are goal-oriented variations on the Minimalistic Gridworld Environment in [\cite{gym_minigrid}]. Fig. \ref{fig:tabular_fourroomsgoal_env} shows the \texttt{FourRoomsGoal-v0} environment.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.5\columnwidth]{img/FourRoomsGoal-v0.png}
@@ -236,7 +236,7 @@ The setting of the experiment is:
     \item A sparse reward $r = 1$ is returned if goal (red flag) is reached or $r = 0$ otherwise.
 \end{itemize}
 In Q-learning an agent learns from every transition. During this experiment, an agent continues an episode and only stops when the goal has been reached.
-In the hindsight experience replay experiments as defined in [\cite{andrychowicz2017hindsight}], good results were obtained using a \texttt{final} goal-sampling strategy where the final state in an episode is used for goal replacement in all experienced transitions of that episode. I use a slight variation on this algorithm in that I device an episode into \textbf{subtraject} where for all transitions in that subtraject the \texttt{final} state of that subtraject is selected for goal replacement. The subtraject length is an hyperparameter then and using a grid search I tried to find the length which results in the optimal performance, i.e. the least number of steps to reach the goal state. The resulting algorithm for tabular Q-Learning with hindsight is then:
+In the hindsight experience replay experiments as defined in [\cite{andrychowicz2017hindsight}], good results were obtained using a \texttt{final} goal-sampling strategy where the final state in an episode is used for goal replacement in all experienced transitions of that episode. I use a slight variation on this algorithm in that I device an episode into \textbf{subtrajects} where for all transitions in a subtraject the \texttt{final} state of that subtraject is selected for goal replacement. The subtraject length is an hyperparameter then and using a grid search I tried to find the length which results in the optimal performance, i.e. the least number of steps to reach the goal state. The resulting algorithm for tabular Q-Learning with hindsight is then:
 \begin{itemize}
 \item Episodes are divided in sub-trajects
 \item For each transition in sub-traject
@@ -246,7 +246,7 @@ In the hindsight experience replay experiments as defined in [\cite{andrychowicz
     \item Store the modified duplicate in the replay buffer
     \end{itemize}
 \item For each episode, sample a mini-batch of transitions from the replay buffer
-\item Update the agent's QA-table with the sampled transitions
+\item Update the agent's QA-table learning from the sampled transitions
 \end{itemize}
 The results of tabular Q-Learning with and without hindsight experience in the \textit{3x3 FourRoomsGoal-v0} environment are shown in Fig. \ref{fig:experiment_fourroomsgoal_learning_performance}.
 
@@ -259,7 +259,7 @@ The results of tabular Q-Learning with and without hindsight experience in the \
 
 It's clear that Q-learning with HER outperforms Q-learning without HER. HER has faster learning and converges faster using less optimization steps. The reason for measuring performance in function of optimization steps and not in function of the number of episodes is to have a more honest comparison between HER and non-HER experiments. HER can do more optimizations per episode because it samples mini-batches of transitions from the experience replay buffer. In Fig. \ref{fig:experiment_fourroomsgoal_learning_performance} a clear \textit{shift} to the right of both curves can be noticed. This artifact is due to a smoothing algorithm which smooths results over 30 periods. This shift is less pronounced for HER because it learns faster and quickly requires less optimization steps per episode. The learning curve converges to a value of about 6 steps. This is on average the distance between the randomly assigned start and goal positions. Best case this distance is 1 step and worst case it is 12 steps.
 
-The results of tabular Q-Learning with and without hindsight experience in the \textit{10x10 FourRoomsGoalBig-v0} environment are shown in Fig. \ref{fig:experiment_fourroomsgoalbig_learning_performance}. It's clear that Q-learning with HER clearly outperforms Q-learning without HER. The difference is even more pronounced that in the smaller environment. Again HER converges faster than non-HER as HER does more optimizations per episode. The HER learning curve seems to converge to a value towards 200 although the curve is not yet flat after 3 million optimization steps. In the bigger fourrooms environment, best case distance is 1 step and worst case distance is 40 steps. On average this would lead to an optimal value of 20 steps. An explanation to the difference between the actual curve and optimal value could be that the agent's '$\epsilon$-greedy algorithm part of the time still explores and doesn't always choose the best action. 
+The results of tabular Q-Learning with and without hindsight experience in the \textit{10x10 FourRoomsGoalBig-v0} environment are shown in Fig. \ref{fig:experiment_fourroomsgoalbig_learning_performance}. It's clear that Q-learning with HER  outperforms Q-learning without HER. The difference is even more pronounced than in the smaller environment. Again HER converges faster than non-HER as HER does more optimizations per episode. The HER learning curve seems to converge to a value towards 200 although the curve is not yet flat after 3 million optimization steps. In the bigger fourrooms environment, best case distance is 1 step and worst case distance is 40 steps. On average this would lead to an optimal value of 20 steps. An explanation to the difference between the actual curve and optimal value could be that the agent's '$\epsilon$-greedy algorithm part of the time still explores and doesn't always choose the best action. 
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.9\columnwidth]{img/exp_tabular_her_fourroom_big.png}
@@ -422,10 +422,25 @@ My results compare nicely with the results of experiments done by the author [\c
 \label{fig:exp_deep_test_plappert}
 \end{figure}
 
-The results of my experiments show that we can apply the ideas from a discrete tabular Q-learning setting to a more complex, continuous deep learning setting for motor control task, In this experiment I reproduced the results of the paper [\cite{plappert2018multi}]. I will propose some possible future research in section \ref{sec:future_work}).
+The results of my experiments show that we can apply the ideas from a discrete tabular Q-learning setting to a more complex, continuous deep learning setting for motor control task, In this experiment I reproduced the results of the paper [\cite{plappert2018multi}]. 
 
 \section{Future work} \label{sec:future_work}
+Training agents via deep reinforcement learning with sparse rewards for robotic control tasks are a big challenge due to the sparseness of successful experience. HER ([\cite{andrychowicz2017hindsight}]) solves this by adding unsuccessful experience and considering it as successful. By doing that, it introduces bias by assuming that experienced actions lead to successful hindsight goals. This assumption overestimates the probability assigned by the policy network to the action, given the current state and hindsight goal. ARCHER ([\cite{lanka2018archer}]) compensates for this bias by assigning aggressive rewards to hindsight experience. However, both HER and ARCHER do not take into account variable importance of hindsight experience at different stages of training. [\cite{vecchietti2020sampling}] proposes a sampling rate decay strategy that decreases the number of hindsight experiences as training proceeds and demonstrate that the proposed method improves training performance over HER and ARCHER. A downside of the proposed method is that a time-consuming grid search is needed to find the best values of hyperparameters which determine the decaying amount of hindsight experience used during learning and act as an adaptive learning rate.
 
+The learning rate is the most important hyperparameter to tune for training deep neural networks. [\cite{smith2017cyclical}] describes a method for setting a cyclical learning rate, which practically eliminates the need to experimentally find the best learning rate values. The method lets the learning rate cyclically vary between reasonable boundaries. It is demonstrated that training with cyclical learning rates improves classification accuracy without the need to tune and often in fewer iterations. The paper discusses a number of cyclical learning rate (CLR) policies:
+\begin{itemize}
+    \item \texttt{triangular}: Linearly increasing/decreasing learning rate between minimum and maximum bounds, illustrated in Fig. \ref{fig:research_clr}.
+    \item \texttt{triangular2}: The same as triangular, but with decreasing learning rate difference at each cycle.
+    \item \texttt{exp\_range}: The learning rate varies between minimum and maximum boundaries and each boundary value declines by an exponential factor.
+\end{itemize}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.7\columnwidth]{img/CLR.png}
+\caption{Triangular learning rate policy. The blue lines represent learning rate values changing between bounds. The input parameter stepsize is the number of iterations in half a cycle.}
+\label{fig:research_clr}
+\end{figure}
+
+Given the good results of hindsight experience sampling rate decay [\cite{vecchietti2020sampling}], and demonstrated improvements of using a cyclical learning rate (CLR) technique in classification problems [\cite{smith2017cyclical}], it is worthwhile doing research at applying CLR as a sampling rate method for hindsight experience sampling during training. It is also worthwhile to research whether other functional forms (e.g. parabolic, sinusoidal) of learning rate can produce equivalent or better results.
 \newpage
 \printbibliography
 \end{document}
