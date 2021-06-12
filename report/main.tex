@@ -9,6 +9,7 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{float}
 \usepackage[inline]{enumitem}
 \usepackage{minted}
 \usepackage{tikz}
@@ -267,7 +268,7 @@ The option-critic architecture works according to a \textit{call-and-return opti
 The proposal in [\cite{bacon2017option}] developed a general gradient-based approach for learning simultaneously the intra-option policies and termination functions, as well as the policy over options, in order to optimize a performance objective for the task at hand.
 
 \subsection{Learning Multi-Level Hierarchies with Hindsight}
-Multi-level hierarchies have the potential to accelerate learning in sparse reward tasks because they can divide a problem into a set of short horizon sub-problems. The proposal in [\cite{levy2019learning}] introduces a framework that can learn multiple levels of policies in parallel, so the simpler sub-problems can be solved simultaneously. The framework, called \textit{hierarchical actor-critic} (HAC), has a hierarchical architecture and a method for learning multiple levels of goal-conditioned policies in parallel given sparse rewards. The number of levels in the hierarchy is a hyperparameter chosen by the user.
+Hierarchy has the potential to accelerate learning in sparse reward tasks because they can divide a problem into a set of short horizon sub-problems. The proposal in [\cite{levy2019learning}] introduces a framework that can learn multiple levels of policies in parallel, so the simpler sub-problems can be solved simultaneously. The framework, called \textit{hierarchical actor-critic} (HAC), has a hierarchical architecture and a method for learning multiple levels of goal-conditioned policies in parallel given sparse rewards. The number of levels in the hierarchy is a hyperparameter chosen by the user.
 -
 The highest level policy takes as input the current state and goal state provided by the task and outputs a sub-goal state. This state is used as the goal state for the policy at the next level down. The policy at that level takes as input the current state and the goal state provided by the level above and outputs its own sub-goal state for the next level below to achieve. This process continues until the lowest level is reached. The lowest level then takes as input the current state and the goal state provided by the level above and outputs a primitive action. Further, each level has a certain number of attempts to achieve its goal state. When the level either runs out of attempts or achieves its goal state, execution at that level ceases and the level above outputs another sub-goal. Fig. \ref{fig:mutilevel_her_example} shows an example of an agent using a 3-level policy hierarchy to move through rooms to reach its target.
 \begin{figure}[ht]
@@ -287,7 +288,7 @@ For this experiment, the task for the agent is to reach a position in a four-roo
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.5\columnwidth]{img/FourRoomsGoal-v0.png}
-\caption{Goal-oriented 3x3 FourRoomsGoal-v0 environment.}
+\caption{Goal-oriented 3x3 \texttt{FourRoomsGoal-v0} environment.}
 \label{fig:tabular_fourroomsgoal_env}
 \end{figure}
 The setting of the experiment is:
@@ -296,17 +297,17 @@ The setting of the experiment is:
     \item A sparse reward $r = 1$ is returned if goal (red flag) is reached or $r = 0$ otherwise.
 \end{itemize}
 In Q-learning an agent learns from every transition. During this experiment, an agent continues an episode and only stops when the goal has been reached.
-In the hindsight experience replay experiments as defined in [\cite{andrychowicz2017hindsight}], good results were obtained using a \texttt{final} goal-sampling strategy where the final state in an episode is used for goal replacement in all experienced transitions of that episode. I use a slight variation on this algorithm in that I device an episode into \textbf{subtrajects} where for all transitions in a subtraject the \texttt{final} state of that subtraject is selected for goal replacement. The subtraject length is an hyperparameter then and using a grid search I tried to find the length which results in the optimal performance, i.e. the least number of steps to reach the goal state. The resulting algorithm for tabular Q-Learning with hindsight is then shown in Alg. \ref{alg:qtab_her}.
+In the hindsight experience replay experiments as defined in [\cite{andrychowicz2017hindsight}], good results were obtained using a \texttt{final} goal-sampling strategy where the final state in an episode is used for goal replacement in all experienced transitions of that episode. I use a slight variation on this algorithm in that I divide an episode into \textit{subtrajects} where for all transitions in a subtraject the \texttt{final} state of that subtraject is selected for goal replacement. The subtraject length is an hyperparameter then and using a grid search I tried to find the length which results in the optimal performance, i.e. the least number of steps to reach the goal state. The resulting algorithm for tabular Q-Learning with hindsight is then shown in Alg. \ref{alg:qtab_her}.
 \begin{algorithm}
 \caption{Tabular Q-Learning with Hindsight}
 \label{alg:qtab_her}
 \textbf{Given}:
 \begin{itemize}
-    \item off-policy RL algorithm $\mathbb{A}$
-    \item strategy $\mathbb{S}$ for sampling goals for replay
-    \item reward function $r: S \times A \times G \to \mathbb{R}$
+    \item off-policy RL algorithm $\mathbb{A}$ (i.e. Q-learning)
+    \item strategy $\mathbb{S}$ for sampling goals for replay (i.e. $\mathbb{S}(s_0, ..., s_T ) = s_T$)
+    \item reward function $r: S \times A \times G \to \mathbb{R}$ (i.e. $r(s, a, g) = [f_g(s) == 1]$)
 \end{itemize}
-Initialize $\mathbb{A}$ \\
+Initialize $\mathbb{A}$ (initialize q-learning agent) \\
 Initialize replay buffer $R$
 \begin{algorithmic}
 \FOR{episode = $1, M$}
@@ -336,47 +337,51 @@ Initialize replay buffer $R$
 \end{algorithmic}
 \end{algorithm}
 
-The results of tabular Q-Learning with and without hindsight experience in the \textit{3x3 FourRoomsGoal-v0} environment are shown in Fig. \ref{fig:experiment_fourroomsgoal_learning_performance}.
+The results of tabular Q-Learning with and without hindsight experience in the 3x3 \texttt{FourRoomsGoal-v0} and the 10x10 \texttt{FourRoomsGoalBig-v0} environments are shown in Fig. \ref{fig:experiment_tabular_qlearning_her}. It's clear that Q-learning with HER outperforms Q-learning without HER because it provides more learning signals to the agent. HER has faster learning and converges faster using less optimization steps. The reason for measuring performance in function of optimization steps and not in function of the number of episodes is to have a more honest comparison between HER and non-HER experiments. HER can do more optimizations per episode because it samples mini-batches of transitions from the experience replay buffer.
 
-\begin{figure}[ht]
+\begin{figure*}[ht]
 \centering
-\includegraphics[width=0.9\columnwidth]{img/exp_tabular_her_fourroom_small.png}
-\caption{Learning curve of tabular Q-learning with and without HER for the 3x3 FourRoomsGoal-v0 environment. The performance is measured in number of episode steps required to reach target in function of optimization steps of the Q-learning agent. The results show the average performance over 10 runs of 3000 episodes each. The sub-trajectory length for Q-learning with HER equals 28 steps.}
+\begin{subfigure}[t]{0.45\textwidth}
+\centering
+\includegraphics[width=0.9\textwidth]{img/exp_tabular_her_fourroom_small.png}
+\caption{Learning curve of tabular Q-learning with and without HER for the \texttt{3x3 FourRoomsGoal-v0} environment. The results show the average performance over 10 runs of 3000 episodes each. The sub-trajectory length for Q-learning with HER equals 28 steps.}
 \label{fig:experiment_fourroomsgoal_learning_performance}
-\end{figure}
-
-It's clear that Q-learning with HER outperforms Q-learning without HER. HER has faster learning and converges faster using less optimization steps. The reason for measuring performance in function of optimization steps and not in function of the number of episodes is to have a more honest comparison between HER and non-HER experiments. HER can do more optimizations per episode because it samples mini-batches of transitions from the experience replay buffer. In Fig. \ref{fig:experiment_fourroomsgoal_learning_performance} a clear \textit{shift} to the right of both curves can be noticed. This artifact is due to a smoothing algorithm which smooths results over 30 periods. This shift is less pronounced for HER because it learns faster and quickly requires less optimization steps per episode. The learning curve converges to a value of about 6 steps. This is on average the distance between the randomly assigned start and goal positions. Best case this distance is 1 step and worst case it is 12 steps.
-
-The results of tabular Q-Learning with and without hindsight experience in the \textit{10x10 FourRoomsGoalBig-v0} environment are shown in Fig. \ref{fig:experiment_fourroomsgoalbig_learning_performance}. It's clear that Q-learning with HER  outperforms Q-learning without HER. The difference is even more pronounced than in the smaller environment. Again HER converges faster than non-HER as HER does more optimizations per episode. The HER learning curve seems to converge to a value towards 200 although the curve is not yet flat after 3 million optimization steps. In the bigger fourrooms environment, best case distance is 1 step and worst case distance is 40 steps. On average this would lead to an optimal value of 20 steps. An explanation to the difference between the actual curve and optimal value could be that the agent's '$\epsilon$-greedy algorithm part of the time still explores and doesn't always choose the best action. 
-\begin{figure}[ht]
+\end{subfigure}
+\hspace{1em}
+\begin{subfigure}[t]{0.45\textwidth}
 \centering
-\includegraphics[width=0.9\columnwidth]{img/exp_tabular_her_fourroom_big.png}
-\caption{Learning curve of tabular Q-learning with and without HER for the 10x10 FourRoomsGoalBig-v0 environment. The performance is measured in number of episode steps required to reach target in function of optimization steps of the Q-learning agent. The results show the average performance over 10 runs of 20000 episodes each. The sub-trajectory length for Q-learning with HER equals 44 steps.}
+\includegraphics[width=0.9\textwidth]{img/exp_tabular_her_fourroom_big.png}
+\caption{Learning curve of tabular Q-learning with and without HER for the \texttt{10x10 FourRoomsGoalBig-v0} environment. The results show the average performance over 10 runs of 20000 episodes each. The sub-trajectory length for Q-learning with HER equals 44 steps.}
 \label{fig:experiment_fourroomsgoalbig_learning_performance}
-\end{figure}
+\end{subfigure}
+\caption{Learning curve of tabular Q-learning with and without HER for two different gridworld environments. (a) \texttt{3x3 FourRoomsGoal-v0} environment. (b) \texttt{10x10 FourRoomsGoalBig-v0} environment. The performance is measured in number of episode steps required to reach target in function of optimization steps of the Q-learning agent. Q-learning with HER has faster learning and converges faster because it provides more learning signals to the agent.}
+\label{fig:experiment_tabular_qlearning_her}
+\end{figure*}
 
-As mentioned before, I use a variation of the HER algorithm in which episodes are divided into subtrajects with the subtraject length used as a hyperparameter. I performed a grid search for both environments used in the experiments to find the optimal value, i.e. a subtraject length that minimizes the number of steps needed to reach the goal position in the fourroom environments. The results of this grid search are shown in Fig. \ref{fig:experiment_subtraject_gridsearch}. 
+The learning curves of the agent in the 3x3 \texttt{FourRoomsGoal-v0} environment (Fig. \ref{fig:experiment_fourroomsgoal_learning_performance}) shows a clear \textit{shift} to the right of both curves (HER and non-HER). This artifact is due to a smoothing algorithm which smooths results over 30 periods. This shift is less pronounced for HER because it learns faster and quickly requires less optimization steps per episode. The learning curve converges to a value of about 6 steps. This is on average the distance between the randomly assigned start and goal positions. Best case this distance is 1 step and worst case it is 12 steps.
 
-\begin{figure}[ht]
+The results for the 10x10 \texttt{FourRoomsGoalBig-v0} environment (Fig. \ref{fig:experiment_fourroomsgoalbig_learning_performance}) show an more pronounced difference in learning between HER and non-HER cases than in the smaller environment. The HER learning curve seems to converge to a value towards 200 although the curve is not yet flat after 3 million optimization steps. In the bigger environment, best case distance is 1 step and worst case distance is 40 steps. On average this would lead to an optimal value of 20 steps. An explanation to the difference between the actual curve and optimal value could be that the agent's '$\epsilon$-greedy algorithm part of the time still explores and doesn't always choose the best action. 
+
+As mentioned before, I use a variation of the HER algorithm in which episodes are divided into subtrajects with the subtraject length used as a hyperparameter. I performed a grid search for both environments used in the experiments to find the optimal value, i.e. a subtraject length that minimizes the number of steps needed to reach the goal position in the fourroom environments. The results of this grid search are shown in Fig. \ref{fig:experiment_subtraject_gridsearch}. Although the plots are somewhat noisy due to the coarse granularity of subtraject values in the grid search, a clear trend can be noticed. For the \textit{FourRoomsGoal-v0} environment (Fig. \ref{fig:experiment_subtraject_gridsearch_small}) an optimal value of 28 was found and for the \textit{FourRoomsGoalBig-v0} environment (Fig. \ref{fig:experiment_subtraject_gridsearch_big}) this value was 44. To be sure that the values are not local minima, a more extensive grid search would be required.
+
+\begin{figure*}[ht]
 \centering
-\begin{subfigure}[t]{0.45\columnwidth}
+\begin{subfigure}[t]{0.45\textwidth}
 \centering
-\includegraphics[width=1.0\textwidth]{img/exp_tabular_her_gridsearch_small.png}
-\caption{FourRoomsGoal-v0 performance in function of subtraject length.}
+\includegraphics[width=0.9\textwidth]{img/exp_tabular_her_gridsearch_small.png}
+\caption{\texttt{3x3 FourRoomsGoal-v0} performance in function of subtraject length.}
 \label{fig:experiment_subtraject_gridsearch_small}
 \end{subfigure}
-\hspace{0em}
-\begin{subfigure}[t]{0.45\columnwidth}
+\hspace{1em}
+\begin{subfigure}[t]{0.45\textwidth}
 \centering
-\includegraphics[width=1.0\textwidth]{img/exp_tabular_her_gridsearch_big.png}
-\caption{FourRoomsGoalBig-v0 performance in function of subtraject length.}
+\includegraphics[width=0.9\textwidth]{img/exp_tabular_her_gridsearch_big.png}
+\caption{\texttt{10x10 FourRoomsGoalBig-v0} performance in function of subtraject length.}
 \label{fig:experiment_subtraject_gridsearch_big}
 \end{subfigure}
-\caption{Grid search results on the optimal hyperparameter subtraject length parameter.}
+\caption{Grid search results on the optimal hyperparameter subtraject length parameter for the modified HER algorithm. Episodes of experience are divided into subtrajects with a fixed length. The sample strategy will sample new goals on subtraject level, rather than on traject level. The subtraject length thus determines how many different goals will be sampled and used as hindsight experience over the course of an episode.}
 \label{fig:experiment_subtraject_gridsearch}
-\end{figure}
-
-Although the plots are somewhat noisy due to the coarse granularity of subtraject values in the grid search, a clear trend can be noticed. For the \textit{FourRoomsGoal-v0} environment (Fig. \ref{fig:experiment_subtraject_gridsearch_small}) an optimal value of 28 was found and for the \textit{FourRoomsGoalBig-v0} environment (Fig. \ref{fig:experiment_subtraject_gridsearch_big}) this value was 44. To be sure that the values are not local minima, a more extensive grid search would be required.
+\end{figure*}
 
 \subsection{Option Learning with Hindsight}
 Knowing that we can train a Q-learning agent with HER and that it greatly improves learning over non-HER Q-learning, can we also use that agent for more complex tasks than just reaching a goal? Suppose we have an environment where we can only reach a goal if certain sub-goals are reached first. Suppose further that a meta-agent exists that can learn high-level goals (options) and a controller agent that knows how to perform low-level actions to actually reach goals. The meta-agent only knows when a final goal has been reached when it receives a sparse reward. Fig. \ref{fig:experiment_option_her_concept} shows the concept.
@@ -388,7 +393,7 @@ Knowing that we can train a Q-learning agent with HER and that it greatly improv
 \label{fig:experiment_option_her_concept}
 \end{figure}
 
-In this experiment, I created an \textit{FourRoomsKeyDoorEnv-v0} environment with a key and a door. The environment is very similar to the \textit{FoorRoomsGoalEnv-v0} used in \ref{subsec:exp_tab_her}, with the difference that the goal is to reach the door while having a key. The options to discover are the key and the door. I created two variants of this environment: \textit{FourRoomsKeyDoorEnv-v0} and \textit{FourRoomsBigKeyDoorEnv-v0} to assess training in small and big room environments. Fig. \ref{fig:experiment_option_her_keydoor_env} shows the \textit{FourRoomsKeyDoorEnv-v0} environment.
+In this experiment, I created an \texttt{FourRoomsKeyDoorEnv-v0} environment with a key and a door. The environment is very similar to the \texttt{FoorRoomsGoalEnv-v0} used in \ref{subsec:exp_tab_her}, with the difference that the goal is to reach the door while having a key. The options to discover are the key and the door. I created two variants of this environment: \texttt{FourRoomsKeyDoorEnv-v0} and \texttt{FourRoomsBigKeyDoorEnv-v0} to assess training in small and big room environments. Fig. \ref{fig:experiment_option_her_keydoor_env} shows the \texttt{FourRoomsKeyDoorEnv-v0} environment.
 
 \begin{figure}[ht]
 \centering
@@ -404,111 +409,137 @@ The setting of the experiment is as follows:
 \item[Controller-agent] Q-Learning with HER agent. The controller agent is pretrained to reach goals. It's policy is trained on state described by (position, goal) and its low-level actions are basic movements \texttt{up, down, left, right}.
 \end{description}
 
-With the described setting it's straightforward to train the meta-agent as a Q-learning agent. Options are generated according to an $\epsilon$-greedy policy, while the controller agent is acting greedy according to its pretrained policy. The training performance of the meta-agent is shown in Fig. \ref{fig:exp_option_her_training_small} for the small environment.  The learning curve shows the number of options or high-level goals taken to reach the door with the key. It converges to slightly above 2 options (optimal is 2, i.e. the key and door option). The agent still explores explaining why on average the number is slightly above 2. Fig. shows the training performance \ref{fig:exp_option_her_training_big} for the big environment. Similar results are obtained.
+With the described setting it's straightforward to train the meta-agent as a Q-learning agent. Options are generated according to an $\epsilon$-greedy policy, while the controller agent is acting greedy according to its pretrained policy. The training performance of the meta-agent is shown in Fig. \ref{fig:exp_option_her_training_small} for the small environment.  The learning curve shows the number of options or high-level goals taken to reach the door with the key. It converges to slightly above 2 options (optimal is 2, i.e. the key and door option). The agent still explores explaining why on average the number is slightly above 2. Fig. \ref{fig:exp_option_her_training_big} shows the training performance for the big environment. Similar results are obtained.
 
-\begin{figure}[ht]
+\begin{figure*}[ht]
 \centering
-\includegraphics[width=0.9\columnwidth]{img/exp_option_her_keydoor_small.png}
-\caption{Learning curve of meta-agent option learning for the FourRoomsKeyDoorEnv environment. The performance is measured in number of options needed to reach target in function of episode. Results are averaged over 10 training runs of 3000 episodes each.}
+\begin{subfigure}[t]{0.45\textwidth}
+\centering
+\includegraphics[width=0.9\textwidth, height=5cm]{img/exp_option_her_keydoor_small.png}
+\caption{Learning curve of meta-agent option learning for the \texttt{FourRoomsKeyDoorEnv} environment.}
 \label{fig:exp_option_her_training_small}
-\end{figure}
-
-\begin{figure}[ht]
+\end{subfigure}
+\hspace{1em}
+\begin{subfigure}[t]{0.45\textwidth}
 \centering
-\includegraphics[width=0.9\columnwidth]{img/exp_option_her_keydoor_big.png}
-\caption{Learning curve of meta-agent option learning for the FourRoomsBigKeyDoorEnv environment. The performance is measured in number of options needed to reach target in function of episode. Results are averaged over 10 training runs of 3000 episodes each.}
+\includegraphics[width=0.9\textwidth, height=5cm]{img/exp_option_her_keydoor_big.png}
+\caption{Learning curve of meta-agent option learning for the \texttt{FourRoomsBigKeyDoorEnv} environment.}
 \label{fig:exp_option_her_training_big}
-\end{figure}
+\end{subfigure}
+\caption{Learning curve of meta-agent option learning for the (a) \texttt{FourRoomsKeyDoorEnv} environment and the (b) \texttt{FourRoomsBigKeyDoorEnv} environment. The performance is measured in number of options needed to reach target in function of episode. Results are averaged over 10 training runs of 3000 episodes each.}
+\label{fig:exp_option_her_training}
+\end{figure*}
 
-As the meta-agent only has two states and as many actions as potential goals, equaling the state space, the agent conceptually learns in two different Qtable planes, one where the key hasn't been picked up yet, and one where the key has been picked up. These Qtable planes are shown for the \textit{FourRoomsKeyDoorEnv} environment in Fig. \ref{fig:exp_option_her_qtable_small_key0} (key not picked up) and in Fig. \ref{fig:exp_option_her_qtable_small_key1} where the key has been picked up. Looking at the state-action values in Fig. \ref{fig:exp_option_her_qtable_small_key0}, its clear that the best option to take is goal position where the key is located in case it hasn't been picked up yet. Looking at Fig. \ref{fig:exp_option_her_qtable_small_key1}, the best option to take is the door position in case the key has been picked up. We can conclude that the meta-agent has learned the best options to perform the task optimally. Results for the bigger \textit{FourRoomsBigKeyDoorEnv} environment are similar and the same two options are discovered.
+As the meta-agent only has two states and as many actions as potential goals, equaling the state space, the agent conceptually learns in two different Qtable planes, one where the key hasn't been picked up yet, and one where the key has been picked up. These Qtable planes are shown for the \texttt{FourRoomsKeyDoorEnv} environment in Fig. \ref{fig:exp_option_her_qtable_small_key0} (key not picked up) and in Fig. \ref{fig:exp_option_her_qtable_small_key1} where the key has been picked up. Looking at the state-action values in Fig. \ref{fig:exp_option_her_qtable_small_key0}, its clear that the best option to take is goal position where the key is located in case it hasn't been picked up yet. Looking at Fig. \ref{fig:exp_option_her_qtable_small_key1}, the best option to take is the door position in case the key has been picked up. We can conclude that the meta-agent has learned the best options to perform the task optimally. Results for the bigger \texttt{FourRoomsBigKeyDoorEnv} environment are similar and the same two options are discovered.
 
-\begin{figure}[ht]
+\begin{figure*}[ht]
 \centering
-\includegraphics[width=0.9\columnwidth]{img/exp_option_her_qtable_small_key0.png}
-\caption{Qtable of the option learning meta-agent for the FourRoomsKeyDoorEnv environment.}
+\begin{subfigure}[t]{0.45\textwidth}
+\centering
+\includegraphics[width=0.9\textwidth]{img/exp_option_her_qtable_small_key0.png}
+\caption{Qtable of the option learning meta-agent in state where key is not yet picked up. Best option to take is goal position where the key is located.}
 \label{fig:exp_option_her_qtable_small_key0}
-\end{figure}
-
-\begin{figure}[ht]
+\end{subfigure}
+\hspace{1em}
+\begin{subfigure}[t]{0.45\textwidth}
 \centering
-\includegraphics[width=0.9\columnwidth]{img/exp_option_her_qtable_small_key1.png}
-\caption{Qtable of the option learning meta-agent for the FourRoomsKeyDoorEnv environment.}
+\includegraphics[width=0.9\textwidth]{img/exp_option_her_qtable_small_key1.png}
+\caption{Qtable of the option learning meta-agent in state where key has been picked up. Best option to take is the door position.}
 \label{fig:exp_option_her_qtable_small_key1}
-\end{figure}
-
-After being trained, according to the meta-agent's Qtable values, it should perform optimal. The results of test runs with the trained meta-agent confirm this claim. Fig. \ref{fig:exp_option_her_test_perf_small} shows that the meta-agent only needs two high-level options to reach the door with the key for the small \textit{FourRoomsKeyDoorEnv}. Fig. \ref{fig:exp_option_her_test_pick_small} gives the chance that the key was picked up by accident, i.e. that a goal was chosen by the meta-agent which lead the controller agent over a path containing the key position but not landing on the key position. This would mean the key was picked up by chance, rather than following an optimal policy. As can be seen, this was not the case during test. Similar results where obtained for the bigger  \textit{FourRoomsBigKeyDoorEnv} environment.
-
-\begin{figure}[ht]
-\centering
-\begin{subfigure}[t]{0.45\columnwidth}
-\centering
-\includegraphics[width=1.0\textwidth]{img/exp_option_her_test_perf_small.png}
-\caption{FourRoomsKeyDoorEnv-v0 meta-agent performance as number of options to target per test episode.}
-\label{fig:exp_option_her_test_perf_small}
 \end{subfigure}
-\hspace{0em}
-\begin{subfigure}[t]{0.45\columnwidth}
-\centering
-\includegraphics[width=1.0\textwidth]{img/exp_option_her_test_pick_small.png}
-\caption{FourRoomsKeyDoorEnv-v0 meta-agent ‘key pick-up by chance’ incidence per test episode.}
-\label{fig:exp_option_her_test_pick_small}
-\end{subfigure}
-\caption{FourRoomsKeyDoorEnv-v0 meta-agent test performance.}
-\label{fig:exp_option_her_test_small}
-\end{figure}
+\caption{Qtable of the option learning meta-agent for the \texttt{FourRoomsKeyDoorEnv} environment. The Qtables show the state-action values after training the agent. There are only two possible states: \{key not picked up, key picked up\}. (a) Qtable in state when key has not been picked up. (b) Qtable in state when key has been picked up. Bot tables have one action with the highest state-action value, i.e. the key and door position, respectively in the state where the key hasn't been picked up yet, and the key has been picked up. These are the discovered options.}
+\label{fig:exp_option_her_qtable_small}
+\end{figure*}
 
-This experiment showed that we can train a Q-learning meta-agent to discover options to give to a pretrained controller agent performing the low-level actions to reach those options in order to perform more complex tasks than just reaching a single goal, and this in sparse reward setting using intrinsic motivation. 
+After being trained, according to the meta-agent's Qtable values, the meta-agent should perform optimal. The results of test runs with the trained meta-agent and pretrained controller agent are shown in Tab. \ref{tab:exp_option_her_test}. For both \texttt{FourRoomsKeyDoorEnv} and \texttt{FourRoomsBigKeyDoorEnv} environments, the meta-agent only needs two high-level options to reach the door with the key and thus performs optimally. In case of the smaller \texttt{FourRoomsKeyDoorEnv}, the number of low-level actions taken from start to key position and door position is optimal, but for the larger \texttt{FourRoomsBigKeyDoorEnv} environment, the agent needs more actions than the optimal path would take to reach mentioned positions. For both environments the total number of actions required to complete the task is not optimal and performance in the bigger environment is worse than in the smaller one. This indicates that the pretrained controller agent could need more training. The table also shows the chance that the key was picked up by accident, i.e. that a goal was chosen by the meta-agent which lead the controller agent over a path containing the key position but not landing on the key position. This would mean the key was picked up by chance, rather than following an optimal policy. As can be seen, this was not the case during test.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|l|}
+  \hline
+  Metric & \texttt{Small Env} & \texttt{Big Env} \\
+  \hline
+  Options from start to key pick-up   & 1 & 1 \\
+  Options from start to door with key & 2 & 2 \\
+  Actions from start to key pick-up   & 8 & 33 \\
+  Actions from start to door with key & 20 & 85 \\
+  Key pick-up by chance incidence     & 0.0 & 0.0 \\
+  \hline
+\end{tabular}
+\caption{Meta-agent and controller agent test performance statistics for the \texttt{FourRoomsKeyDoorEnv} (shortened to \texttt{Small Env} and the \texttt{FourRoomsBigKeyDoorEnv} (shortened to \texttt{Big Env}) environments. For both environments the meta-agent performs optimally and only needs one option to pick up the key and two options from start to reach the door with key. The pretrained controller agent performs optimally for the small environment as it needs the minimum number of actions to reach key and door positiions. The controller agent performs suboptimally for the bigger environemnt as it needs more actions to reach key and door positions than the optimal path. The key is never picked up by chance, because the best option to reach the key position is the key position itself.}
+\label{tab:exp_option_her_test}
+\end{table}
+
+As a benchmark to compare results of the option-learning agent and goal-oriented (required by HER) controller agent, I trained a baseline Q-learning agent without HER on both \texttt{FourRoomsKeyDoorEnv} and \texttt{FourRoomsBigKeyDoorEnv} environments. The results are shown in Tab. \ref{tab:exp_baseline_tabular_qlearning}. Comparing results with the option learning case, the baseline q-learning agent is better trained for the task and has superior performance in both \texttt{FourRoomsKeyDoorEnv} and \texttt{FourRoomsBigKeyDoorEnv} environments. It doesn't need to learn multiple goals like the controller agent and only learns from actual experience, where the controller agent also learned from hindsight experience which introduces bias in the learned policy. It is however, trained for this specific environment only.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|l|}
+  \hline
+  Metric & \texttt{Small Env} & \texttt{Big Env} \\
+  \hline
+  Actions from start to key pick-up   & 8 & 19 \\
+  Actions from start to door with key & 18 & 60 \\
+  \hline
+\end{tabular}
+\caption{Baseline tabular Q-learning agent test performance statistics for the \texttt{FourRoomsKeyDoorEnv} (shortened to \texttt{Small Env} and the \texttt{FourRoomsBigKeyDoorEnv} (shortened to \texttt{Big Env}) environments. The baseline Q-learning agent performs optimally and follows a path with minimal distance from start to key pick-up position, and from there to the door for both environments.}
+\label{tab:exp_baseline_tabular_qlearning}
+\end{table}
+
+To conclude, this experiment showed that we can train a Q-learning meta-agent to discover options to give to a pretrained controller agent performing the low-level actions to reach those options in order to perform more complex tasks than just reaching a single goal, and this in sparse reward setting using intrinsic motivation. It still pays off to train an agent specifically for one environment, as the baseline q-learning agent performance shows, taking into account that the learned policy will not be usable for other tasks.
 
 \subsection{From tabular to deep learning for motor control task}
-It would be great if we could apply the ideas from a discrete tabular Q-learning setting to a more complex, continuous deep learning setting for motor control task.  In [\cite{plappert2018multi}], a set of challenging continuous control tasks are introduced which all have binary sparse rewards and follow a multi-goal reinforcement learning framework using hindsight experience. In this experiment I tried to reproduce the results of the paper and learn about possible new ideas for future research (see \ref{sec:future_work}). The setting of the experiment is:
+In [\cite{plappert2018multi}], a set of challenging continuous control tasks are introduced which all have binary sparse rewards and follow a multi-goal reinforcement learning framework using hindsight experience. In this experiment I tried to reproduce the results of the paper and learnt about possible new ideas for future research (see \ref{sec:future_work}). 
+
+The setting of the experiment is as follows:
 \begin{itemize}
-    \item Perform a robotic control task using deep RL.
-    \begin{enumerate}
+\item \textbf{Environment}: \texttt{PandaPickAndPlace} [\cite{gallouedec2021multi}] robot environment based on PyBullet. Environment has a sparse reward: r = 1 if task is achieved, 0 otherwise.
+\item \textbf{Agent}: DDPG and HER for learning. Based on implementation of OpenAI-baselines [\cite{baselines}].
+\item \textbf{Task}:
+    \begin{itemize}
         \item Move robot gripper to an object
         \item Pick up the object
         \item Move the object to a target place
-    \end{enumerate}
-    \item OpenAI-baselines [\cite{baselines}] for learning algorithms DDPG and HER.
-    \item Free OpenAI Gym Franka Emika Panda [\cite{gallouedec2021multi}] robot environment based on PyBullet. 
-    \item Sparse rewards: r = 1 if task is achieved, 0 otherwise.
+    \end{itemize}
 \end{itemize}
 
-Experiments in [\cite{plappert2018multi}] require Mujoco robot environments, which cannot be used due to the license costs. Instead I used the Panda robot environment. Fig.\ref{fig:PandaPickAndPlace} shows PandaPickAndPlace-v1.
+Experiments in [\cite{plappert2018multi}] require Mujoco robot environments, which cannot be used due to the license costs. Instead I used the Panda robot environment. Fig.\ref{fig:PandaPickAndPlace} shows \texttt{PandaPickAndPlace-v1}.
 \begin{figure}[ht]
 \centering
 \includegraphics[width=0.6\columnwidth]{img/PandaPickAndPlace-v1.png}
-\caption{PandaPickAndPlace-v1 environment.}
+\caption{\texttt{PandaPickAndPlace-v1} environment.}
 \label{fig:PandaPickAndPlace}
 \end{figure}
-There are two versions of the PandaPickAndPlace environtment. I initially trained an agent with version 0. Version 1 has increased friction on the object for grabbing. For both environments, I trained the agent using DDPG + HER for 3 runs with different random seeds. Each run has 50 epochs of training for 1 million of time steps in total. The success rate for training is shown in Fig. \ref{fig:exp_deep_train}, with the version 1 environment performing best.
-\begin{figure}[ht]
+
+There are two versions of the \texttt{PandaPickAndPlace} environment. I initially trained an agent with version 0. Version 1 has increased friction on the object for grabbing. For both environments, I trained the agent using DDPG + HER for 3 runs with different random seeds. Each run has 50 epochs of training for 1 million of time steps in total. The success rate for training , success rate for testing and the performance test results of [\cite{plappert2018multi}] are shown in Fig. \ref{fig:exp_deep_perf}.
+
+\begin{figure*}[ht]
 \centering
-\includegraphics[width=0.8\columnwidth]{img/exp_deep_train.png}
-\caption{Success rate for training in function of episodes in PandaPickAndPlace-v0 and PandaPickAndPlace-v1 environment.}
+\begin{subfigure}[t]{0.30\textwidth}
+\centering
+\includegraphics[width=0.9\textwidth, height=4.5cm]{img/exp_deep_train.png}
+\caption{Mean training success rate (line) with standard deviation (shaded area) after each training epoch with averaged over runs with 3 different random seeds in PandaPickAndPlace-v0 and PandaPickAndPlace-v1 environment. Agent trained using DDPG+HER, 50 epochs of training with 1 million time steps in total.}
 \label{fig:exp_deep_train}
-\end{figure}
-
-To compare results with the experiments in [\cite{plappert2018multi}], we need to look at test results. The success rate for testing is shown in Fig. \ref{fig:exp_deep_test}. With version 0 of the environment, we're only successful half of the time, where for version 1, the task of picking and placing the object by the robot is performed successfully after about 50 periods of training.
-\begin{figure}[ht]
+\end{subfigure}
+\hspace{1em}
+\begin{subfigure}[t]{0.30\textwidth}
 \centering
-\includegraphics[width=0.8\columnwidth]{img/exp_deep_test.png}
-\caption{Success rate for testing in function of episodes in PandaPickAndPlace-v0 and PandaPickAndPlace-v1 environment.}
+\includegraphics[width=0.9\textwidth, height=4.5cm]{img/exp_deep_test.png}
+\caption{Mean test success rate (line) with standard deviation (shaded area) after each training epoch averaged over runs with 3 different random seeds in PandaPickAndPlace-v0 and PandaPickAndPlace-v1 environment.}
 \label{fig:exp_deep_test}
-\end{figure}
-
-My results compare nicely with the results of experiments done by the author [\cite{gallouedec2021multi}] of the Panda environment, which are shown in Fig. \ref{fig:exp_deep_test_gallouedec}. The results from [\cite{plappert2018multi}] are shown in Fig. \ref{fig:exp_deep_test_plappert} and seem to converge a bit faster than my own results but equally converge to nearly $100\%$ success rate after 50 episodes of training.
-\begin{figure}[ht]
+\end{subfigure}
+\hspace{1em}
+\begin{subfigure}[t]{0.30\textwidth}
 \centering
-\includegraphics[width=1.0\columnwidth]{img/exp_deep_test_gallouedec.png}
-\caption{Success rate for testing in function of episodes for FetchPickAndPlace  environment in [\cite{gallouedec2021multi}].}
-\label{fig:exp_deep_test_gallouedec}
-\end{figure}
-\begin{figure}[ht]
-\centering
-\includegraphics[width=0.9\columnwidth]{img/exp_deep_test_plappert.png}
-\caption{Success rate for testing in function of episodes for FetchPickAndPlace  environment in [\cite{plappert2018multi}].}
+\includegraphics[width=0.9\textwidth, height=4.5cm]{img/exp_deep_test_plappert.png}
+\caption{Median test success rate (line) with interquartile change (shaded area) after each training epoch averaged over runs with 5 different random seeds in FetchPickAndPlace environment ([\cite{plappert2018multi}]). With version 0 of the environment, we're only successful half of the time, where for version 1, the task of picking and placing the object by the robot is performed successfully after about 50 epochs of training.}
 \label{fig:exp_deep_test_plappert}
-\end{figure}
+\end{subfigure}
+\caption{Deep learning performance for a fetch-pick-and-place robotic control task. (a) Training success rate in PandaPickAndPlace. (b) Testing success rate in PandaPickAndPlace. After 50 training epochs, test success rate is successful half of the time for version 0 of the environment, where for version 1, the task of picking and placing the object by the robot is performed successfully. (c) Testing success rate in FetchPickAndPlace ([\cite{plappert2018multi}]). Testing results for for DDPG+HER in (c) seem to converge a bit faster than the results from (b) but after 50 epochs results of (b) are close to 100\% success rate than results of (c). Overall my test results are in line with those of DDPG+HER in [\cite{plappert2018multi}].}
+\label{fig:exp_deep_perf}
+\end{figure*}
+
+Test performance results of my own experiments are compared with the experiments in [\cite{plappert2018multi}]. The success rate for testing is shown in Fig. \ref{fig:exp_deep_test}. With version 0 of the environment, we're only successful half of the time, where for version 1, the task of picking and placing the object by the robot is performed successfully after about 50 epochs of training. The results from [\cite{plappert2018multi}] are shown in Fig. \ref{fig:exp_deep_test_plappert} and seem to converge a bit faster than my own results but equally converge to nearly $100\%$ success rate after 50 episodes of training.
 
 The results of my experiments show that we can apply the ideas from a discrete tabular Q-learning setting to a more complex, continuous deep learning setting for motor control task, In this experiment I reproduced the results of the paper [\cite{plappert2018multi}]. 
 
