@@ -68,7 +68,7 @@ I believe the contribution of my work to be
     \item proposing potential research areas to improve HER + DRL
 \end{itemize}{}
 
-In Section \ref{sec:background} notation and formalism is introduced as background on RL and to help explain algorithms studied and demonstrated in experiments. In Section \ref{sec:literature_study}, I present related work, along with intrinsic motivation techniques and other approaches to learn from multiple signals. Section \ref{sec:experiments} provides results of experiments in a tabular setting and deep setting to validate existing and proposed techniques. In Section \ref{sec:future_work}, I propose potential future work to explore and improve Intrinsic Motivation in Reinforcement Learning. Section \ref{sec:conclusion} concludes the report.
+In Section \ref{sec:background} notation and formalism is introduced as background on RL and to help explain algorithms studied and demonstrated in experiments. In Section \ref{sec:literature_study}, I present a classification of IM in DRL, along with intrinsic motivation techniques and other approaches to learn from multiple signals. Section \ref{sec:experiments} provides results of experiments in a tabular setting and deep setting to validate existing and proposed techniques. In Section \ref{sec:future_work}, I propose potential future work to explore and improve Intrinsic Motivation in Reinforcement Learning. Section \ref{sec:conclusion} concludes the report.
 
 \section{Background on Reinforcement Learning} \label{sec:background}
 In Reinforcement Learning (RL), the problem to resolve is described as a Markov Decision Process (MDP). The goal of a MDP is to maximize the expectation of cumulative rewards received through a sequence of interactions. It is defined by:
@@ -83,15 +83,15 @@ In Reinforcement Learning (RL), the problem to resolve is described as a Markov 
 An agent starts in a state $s_0$ given by $\rho_0$. At each time step $t$, the agent is in a state $s_t$ and performs an action $a_t$, then it waits for the feedback from the environment composed of a state $s_{t+1}$ sampled from the transition function $P$, and a reward $r_t$ given by the reward function $R$. The agent repeats this interaction loop until the end of an episode.
 The goal of an MDP is to maximize the long-term reward defined by:
 \begin{equation*}
-    \left[\sum_{t=0}^{\infty} \gamma_{t}r_t]\right]
+    \left[\sum_{t=0}^{\infty} \gamma^{t}r_t]\right]
 \end{equation*}
-A reinforcement learning algorithm aims to associate actions a to states s through a policy $\pi: S \to A$ mapping states to actions. The goal of the agent is then to find the optimal policy $\pi^{\ast}$ maximizing the reward:
+A reinforcement learning algorithm aims to associate actions $a$ to states $s$ through a policy $\pi: S \to A$ mapping states to actions. The goal of the agent is then to find the optimal policy $\pi^{\ast}$ maximizing the reward:
 \begin{equation*}
     \pi^{\ast} = \underset{\pi}{\text{arg max }} \mathbb{E}\left[\sum_{t=0}^{\infty}\gamma^{t}R(S_t,S_{t+1},\pi(s_t))\right]
 \end{equation*}
 In order to find the action maximizing the long-term reward in a state $s$, it is common to maximize the expected discounted reward following a policy $\pi$ from a state-action tuple, noted $Q_{\pi}(s, a)$. It enables to measure the impact of the state-action tuple in obtaining the cumulative reward ([\cite{sutton2018reinforcement}]).
 \begin{equation*}
-    Q_{\pi}(s, a) = E_{a_{t}\sim\pi(s_t)}\left( \sum_{t=0}^{\infty}\gamma_{t}R(s_t,a_t)\mid_{s_0=s,a_0=a}\right)
+    Q_{\pi}(s, a) = E_{a_{t}\sim\pi(s_t)}\left( \sum_{t=0}^{\infty}\gamma^{t}R(s_t,a_t)\mid_{s_0=s,a_0=a}\right)
 \end{equation*}
 
 To compute these values, it is possible to use the Bellman equation ([\cite{sutton2018reinforcement}]):
@@ -117,7 +117,7 @@ IM offers a greater learning flexibility, through the use of a more general rewa
 
 The RL framework can be reformulated, as done by [\cite{singh2010intrinsically}] and [\cite{barto2004intrinsically}], to incorporate IM. A distinction is made between primary reward and secondary reward signals. The primary reward signal is the standard extrinsic reward returned by the environment. The secondary signal is a local reward computed by the agent and thus internal or intrinsic to that agent.
 
-There are multiple ways to integrate an intrinsic reward into a RL framework. The main approach is to compute the agent’s reward r as a weighted sum
+There are multiple ways to integrate an intrinsic reward into a RL framework. The main approach is to compute the agent’s reward $r$ as a weighted sum
 of an intrinsic reward $r_{int}$ and the extrinsic reward $r_{ext}$ [\cite{burda2018exploration}; \cite{gregor2016variational};\cite{vezhnevets2017feudal};\cite{huang2019learning}]:
 \begin{equation*}
 r = \alpha \cdot r_{int} + \beta \cdot r_{ext}
@@ -189,7 +189,7 @@ When RL is used to solve only one task, it is not suited to learn multiple tasks
     Q_{\pi}(s_t, a_t, g) = E \left[R_t \mid s_t,a_t, g \right]
 \end{equation*}
 
-Using the UFVA approach, policies and value functions can be trained enabling agents to achieve multiple different goals. Assume that every goal $g \in G$ corresponds to some predicate $f_g : S \to \{0, 1\}$ and the agent's goal is to achieve any state $s$ that achieves $f_g(s) = 1$. A universal policy can be trained by some RL algorithm by sampling goals and initial states, running the agent for some timesteps giving it negative rewards when a goal is not reached and zero when the goal is reached, i.e. $r_g(s, a) = -[f_g(s) = 0]$. This doesn't work well in practice because the rewards function is sparse and not very informative. To solve this problem, Hindsight Experience Replay (HER) [\cite{andrychowicz2017hindsight}] is introduced.
+Using the UVFA approach, policies and value functions can be trained enabling agents to achieve multiple different goals. Assume that every goal $g \in G$ corresponds to some predicate $f_g : S \to \{0, 1\}$ and the agent's goal is to achieve any state $s$ that achieves $f_g(s) = 1$. A universal policy can be trained by some RL algorithm by sampling goals and initial states, running the agent for some timesteps giving it negative rewards when a goal is not reached and zero when the goal is reached, i.e. $r_g(s, a) = -[f_g(s) == 0]$. This doesn't work well in practice because the rewards function is sparse and not very informative. To solve this problem, Hindsight Experience Replay (HER) [\cite{andrychowicz2017hindsight}] is introduced.
 
 The idea behind HER is that after experiencing some episode $s0, s1, ..., s_T$, every transition $s_t \to s_{t+1}$ is stored in a replay buffer, not only with the original goal used for this episode but also with a subset of other goals. One choice which has to be made in order to use HER is the set of additional goals used for replay. In the simplest version of the algorithm each trajectory is replayed with the goal which is achieved in the final state of the episode. The agent is trained with experience from the replay buffer, i.e. it learns from experience from the episode trajectory with the original goal and the additional goals which were actually achieved. To give an example: An agent acts in the environment, resulting in an interaction $(s_t, s_{t+1}, r_g, a_t, g)$ where $r_g$ is the reward associated to the goal g. The agent can learn on this interaction, but can also use this interaction to learn other goals. To do so, it can change the goal into a new goal and recompute the reward, resulting in a new interaction $(s_t, s_{t+1}, r_{g^{\prime}}, a_t, g^{\prime})$. The only constraint for doing this is that the reward function $R(s_t, a_t, s_{t+1}, g^{\prime})$ has to be known. An example reward function could be $r_g(s, a) = -[f_g(s) == 0]$. The HER algorithm is shown in Alg. \ref{alg:her}.
 \begin{algorithm}
@@ -293,7 +293,7 @@ The setting of the experiment is:
     \item A sparse reward $r = 1$ is returned if goal (red flag) is reached or $r = 0$ otherwise.
 \end{itemize}
 In Q-learning an agent learns from every transition. During this experiment, an agent continues an episode and only stops when the goal has been reached.
-In the hindsight experience replay experiments as defined in [\cite{andrychowicz2017hindsight}], good results were obtained using a \texttt{final} goal-sampling strategy where the final state in an episode is used for goal replacement in all experienced transitions of that episode. I use a slight variation on this algorithm in that I divide an episode into \textit{subtrajects} where for all transitions in a subtraject the \texttt{final} state of that subtraject is selected for goal replacement. The subtraject length is an hyperparameter then and using a grid search I tried to find the length which results in the optimal performance, i.e. the least number of steps to reach the goal state. The resulting algorithm for tabular Q-Learning with hindsight is shown in Alg. \ref{alg:qtab_her}.
+In the hindsight experience replay experiments as defined in [\cite{andrychowicz2017hindsight}], good results were obtained using a \texttt{final} goal-sampling strategy where the final state in an episode is used for goal replacement in all experienced transitions of that episode. I use a slight variation on this algorithm in that I divide an episode into \textit{subtrajects} where for all transitions in a subtraject the \texttt{final} state of that subtraject is selected for goal replacement. The subtraject length is a hyperparameter. Using a grid search I tried to find the length which results in the optimal performance, i.e. the least number of steps to reach the goal state. The resulting algorithm for tabular Q-Learning with hindsight is shown in Alg. \ref{alg:qtab_her}.
 \begin{algorithm}
 \caption{Tabular Q-Learning with Hindsight}
 \label{alg:qtab_her}
@@ -514,30 +514,30 @@ There are two versions of the \texttt{PandaPickAndPlace} environment. I initiall
 \begin{subfigure}[t]{0.30\textwidth}
 \centering
 \includegraphics[width=0.9\textwidth, height=4.5cm]{img/exp_deep_train.png}
-\caption{Mean training success rate (line) with standard deviation (shaded area) after each training epoch with averaged over runs with 3 different random seeds in PandaPickAndPlace-v0 and PandaPickAndPlace-v1 environment. Agent trained using DDPG+HER, 50 epochs of training with 1 million time steps in total.}
+\caption{Mean training success rate (line) with standard deviation (shaded area) after each training epoch over 3 runs with different random seeds in PandaPickAndPlace-v0 and PandaPickAndPlace-v1 environment. Agent trained using DDPG+HER, 50 epochs of training with 1 million time steps in total.}
 \label{fig:exp_deep_train}
 \end{subfigure}
 \hspace{1em}
 \begin{subfigure}[t]{0.30\textwidth}
 \centering
 \includegraphics[width=0.9\textwidth, height=4.5cm]{img/exp_deep_test.png}
-\caption{Mean test success rate (line) with standard deviation (shaded area) after each training epoch averaged over runs with 3 different random seeds in PandaPickAndPlace-v0 and PandaPickAndPlace-v1 environment.}
+\caption{Mean test success rate (line) with standard deviation (shaded area) after each training epoch over 3 runs with different random seeds in PandaPickAndPlace-v0 and PandaPickAndPlace-v1 environment.}
 \label{fig:exp_deep_test}
 \end{subfigure}
 \hspace{1em}
 \begin{subfigure}[t]{0.30\textwidth}
 \centering
 \includegraphics[width=0.9\textwidth, height=4.5cm]{img/exp_deep_test_plappert.png}
-\caption{Median test success rate (line) with interquartile change (shaded area) after each training epoch averaged over runs with 5 different random seeds in FetchPickAndPlace environment ([\cite{plappert2018multi}]).}
+\caption{Median test success rate (line) with interquartile change (shaded area) after each training epoch over 5 runs with different random seeds in FetchPickAndPlace environment ([\cite{plappert2018multi}]).}
 \label{fig:exp_deep_test_plappert}
 \end{subfigure}
-\caption{Deep learning performance for a fetch-pick-and-place robotic control task. (a) Training success rate in PandaPickAndPlace. (b) Testing success rate in PandaPickAndPlace. After 50 training epochs, test success rate is successful half of the time for version 0 of the environment, where for version 1, the task of picking and placing the object by the robot is performed successfully. (c) Testing success rate in FetchPickAndPlace ([\cite{plappert2018multi}]). Testing results for DDPG+HER in (c) seem to converge a bit faster than the results from (b) but after 50 epochs results of (b) are close to 100\% success rate than results of (c). Overall my test results are in line with those of DDPG+HER in [\cite{plappert2018multi}].}
+\caption{Deep learning performance for a fetch-pick-and-place robotic control task. (a) Training success rate in PandaPickAndPlace. (b) Testing success rate in PandaPickAndPlace. After 50 training epochs, test success rate is successful half of the time for version 0 of the environment, where for version 1, the task of picking and placing the object by the robot is performed successfully. (c) Testing success rate in FetchPickAndPlace ([\cite{plappert2018multi}]). Testing results for DDPG+HER in (c) seem to converge a bit faster than the results from (b) but after 50 epochs results of (b) are closer to 100\% success rate than results of (c). Overall my test results are in line with those of DDPG+HER in [\cite{plappert2018multi}].}
 \label{fig:exp_deep_perf}
 \end{figure*}
 
-The success rate for testing is shown in Fig. \ref{fig:exp_deep_test}. With version 0 of the environment, we're only successful half of the time, where for version 1, the task of picking and placing the object by the robot is performed successfully after about 50 epochs of training. The results from [\cite{plappert2018multi}] are shown in Fig. \ref{fig:exp_deep_test_plappert} and seem to converge a bit faster than my own results but equally converge to nearly $100\%$ success rate after 50 episodes of training.
+The success rate for testing is shown in Fig. \ref{fig:exp_deep_test}. With version 0 of the environment, we're only successful half of the time, where for version 1, the task of picking and placing the object by the robot is performed successfully after about 50 epochs of training. The results from [\cite{plappert2018multi}] are shown in Fig. \ref{fig:exp_deep_test_plappert} and seem to converge a bit faster but my experiments converge closer to nearly $100\%$ success rate after 50 episodes of training.
 
-The results of my experiments show that we can apply the ideas from a discrete tabular Q-learning setting to a more complex, continuous deep learning setting for motor control task, In this experiment I reproduced the results of the paper [\cite{plappert2018multi}]. 
+The results of my experiments show that we can apply the ideas from a discrete tabular Q-learning setting to a more complex, continuous deep learning setting for motor control task. In this experiment I reproduced the results of the paper [\cite{plappert2018multi}]. 
 
 \section{Future work} \label{sec:future_work}
 By assuming that experienced actions lead to successful hindsight goals, the hindsight experience replay technique ([\cite{andrychowicz2017hindsight}]) introduces bias in the learned policy. Compare a real experience tuple $(s_t\|g, a_t, r_t, s_{t+1}\|g)$ with actual goal $g$ to the artificially constructed hindsight experience tuple $(s_t\|g^{\prime}, a_t, r^{\prime}, s_{t+1}\|g^{\prime})$ with $g^{\prime}$ as hindsight goal. This conversion of a real experience to its corresponding hindsight experience makes the unjustified assumption that given different
@@ -564,10 +564,10 @@ The learning rate is the most important hyperparameter to tune for training deep
 \label{fig:research_clr}
 \end{figure}
 
-Given the good results of hindsight experience sampling rate decay [\cite{vecchietti2020sampling}], and demonstrated improvements of using a cyclical learning rate over adaptive rate in classification problems [\cite{smith2017cyclical}], both techniques combined could offer benefits of sampling rate decay without resorting to computationally expensive grid search on exponential decay hyperparameters. Applying those concepts would translate into varying the HER sampling rate between minimum and maximum boundaries and have each boundary decline by some factor. It would be worthwhile to do research on such combined technique and on what functional forms (e.g. triangular, parabolic, sinusoidal, etc.) of sampling rate offer best efficiency of learning with hindsight.
+Given the good results of hindsight experience sampling rate decay [\cite{vecchietti2020sampling}], and demonstrated improvements of using a cyclical learning rate over adaptive rate in classification problems [\cite{smith2017cyclical}], both techniques combined could offer benefits of sampling rate decay without the drawback of computationally expensive grid search on exponential decay hyperparameters. Applying those concepts would translate into varying the HER sampling rate between minimum and maximum boundaries and have each boundary decline over time. It would be worthwhile to do research on such combined technique and on what functional forms (e.g. triangular, parabolic, sinusoidal, etc.) of sampling rate offer best efficiency of learning with hindsight.
 
 \section{Conclusion} \label{sec:conclusion}
-I presented a classification of research on intrinsic motivation and identified hindsight experience replay (HER) as novel technique to increase learning signals in sparse reward environments and as branch for further study. I carried out experiments using Q-learning agent in tabular environments and DDPG agent for robotic control tasks to train them with both actual and hindsight experience. I empirically demonstrated that HER improves sample-efficiency and training performance and that agents trained with HER can be used as controller to discover options in for a different task. I proposed potential future work to explore and improve Intrinsic Motivation using hindsight experience in Reinforcement Learning.
+I presented a classification of research on intrinsic motivation and identified hindsight experience replay (HER) as novel technique to increase learning signals in sparse reward environments and as branch for further study. I carried out experiments using a Q-learning agent in a tabular environment and a DDPG agent for robotic control tasks to train them with both actual and hindsight experience. I empirically demonstrated that HER improves sample-efficiency and training performance and that agents trained with HER can be used as controller to discover options for a different task. I have made a proposal for future work to explore and improve Intrinsic Motivation using hindsight experience in Reinforcement Learning.
 
 \section*{Acknowledgements}
 I would like to thank Louis Bagot and Kevin Mets for helpful feedback and insights during the project and Louis in particular for valuable feedback on the first version of the report.
