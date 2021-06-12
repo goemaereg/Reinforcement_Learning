@@ -25,7 +25,6 @@
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
-    
 
 \begin{document}
 \title{
@@ -123,11 +122,9 @@ of an intrinsic reward $r_{int}$ and the extrinsic reward $r_{ext}$ [\cite{burda
 \begin{equation*}
 r = \alpha \cdot r_{int} + \beta \cdot r_{ext}
 \end{equation*}
-
 This survey [\cite{aubret2019survey}] proposes a classification that emphasizes on two major kinds of intrinsic motivation in reinforcement learning: \textit{knowledge acquisition} explained in \ref{subsubsec:knowledge_acquisition}, and \textit{skill learning} detailed in \ref{subsubsec:skill_learning}. The classification is summarized in Table \ref{tab:classification}.
 
 The large majority of research in the field is focused on knowledge acquisition. However, my interest is focused on skill learning and this was also the focus of my research project, both in subsequent literature study, experiments and ideas on future research work.
-
 \begin{table}[ht]
   \centering
   \begin{subtable}[t]{0.45\columnwidth}
@@ -180,7 +177,6 @@ The large majority of research in the field is focused on knowledge acquisition.
   \caption{Classification of the use of IM in DRL.}
   \label{tab:classification}
 \end{table}
-
 \subsubsection{Knowledge acquisition} \label{subsubsec:knowledge_acquisition}
 The agent strives to find new knowledge about its environment. Knowledge acquisition can improve \textbf{exploration} in sparse reward environments by computing intrinsic rewards. There are four main methods tackling exploration. The first is \textit{prediction error}. The agent is steered to areas where prediction of a state following a state-action tuple is difficult. The second method is \textit{state novelty} where the agent goes into states in which it usually never goes. The third method is \textit{novelty as discrepancy towards other states}, which is another way to evaluate state novelty as distance between a state and the usually covered states. A fourth method is \textit{information gain}, which is a reward based on reduction of uncertainty on the environment dynamics. This pushes the agent towards areas it does not know, but also prevents attraction to stochastic areas. The exploration problem is probably the largest use case for IM. An agent maximizing \textbf{empowerment} tries to have most control on its environment. Several approaches use an environment model to compute rewards based on empowerment, but the essence of RL is that the agent does not know the environment dynamics or reward function a priori. Existing work in this area remains limited. \textbf{Learning a relevant state representation} is the ability of an agent to project its raw state  onto a feature space with meaningful properties. Two different sets of work can be identified. The first, \textit{state space as a measure of distance}, tries to fit distance in the representation space where distance is expressed in terms of actions in the state space. The second set, \textit{one feature for one object of interaction}, tries to learn independent factors of variation in the embedding space. A goal is presented as a variation of one feature in the embedding space, which is learnt simultaneously with the policy controlling the feature [\cite{thomas2017independently}]. E.g., a feature can be a light in a room where a policy relative to a factor of variation can be switching the lamp on or off. The reward is maximized by finding the optimal set of policies. In summary, knowledge acquisition can improve exploration in sparse rewards environments, it can push the agent to maximize its empowerment by rewarding the agent if it is heading towards areas where it controls its environment, and it can help the agent to learn a relevant state representation.
 
@@ -368,14 +364,14 @@ As mentioned before, I use a variation of the HER algorithm in which episodes ar
 \centering
 \begin{subfigure}[t]{0.45\textwidth}
 \centering
-\includegraphics[width=0.9\textwidth]{img/exp_tabular_her_gridsearch_small.png}
+\includegraphics[width=0.7\textwidth]{img/exp_tabular_her_gridsearch_small.png}
 \caption{\texttt{3x3 FourRoomsGoal-v0} performance in function of subtraject length. Optimal performance (i.e. minimum number of steps to goal) was found at subtraject length of 28 transitions.}
 \label{fig:experiment_subtraject_gridsearch_small}
 \end{subfigure}
 \hspace{1em}
 \begin{subfigure}[t]{0.45\textwidth}
 \centering
-\includegraphics[width=0.9\textwidth]{img/exp_tabular_her_gridsearch_big.png}
+\includegraphics[width=0.7\textwidth]{img/exp_tabular_her_gridsearch_big.png}
 \caption{\texttt{10x10 FourRoomsGoalBig-v0} performance in function of subtraject length. Optimal performance (i.e. minimum number of steps to goal) was found at subtraject length of 44 transitions.}
 \label{fig:experiment_subtraject_gridsearch_big}
 \end{subfigure}
@@ -568,7 +564,7 @@ The learning rate is the most important hyperparameter to tune for training deep
 \label{fig:research_clr}
 \end{figure}
 
-Given the good results of hindsight experience sampling rate decay [\cite{vecchietti2020sampling}], and demonstrated improvements of using a cyclical learning rate (CLR) technique in classification problems [\cite{smith2017cyclical}], it is worthwhile investigating how CLR concepts can be applied in a HER sample rate decay strategy and how it could improve training efficiency. Applying those concepts would translate into varying the HER sampling rate between minimum and maximum boundaries and have each boundary decline by some exponential factor. It is also worthwhile to research what functional forms (e.g. triangular, parabolic, sinusoidal) of sampling rate offer better results.
+Given the good results of hindsight experience sampling rate decay [\cite{vecchietti2020sampling}], and demonstrated improvements of using a cyclical learning rate over adaptive rate in classification problems [\cite{smith2017cyclical}], both techniques combined could offer benefits of sampling rate decay without resorting to computationally expensive grid search on exponential decay hyperparameters. Applying those concepts would translate into varying the HER sampling rate between minimum and maximum boundaries and have each boundary decline by some factor. It would be worthwhile to do research on such combined technique and on what functional forms (e.g. triangular, parabolic, sinusoidal, etc.) of sampling rate offer best efficiency of learning with hindsight.
 
 \section{Conclusion} \label{sec:conclusion}
 I presented a classification of research on intrinsic motivation and identified hindsight experience replay (HER) as novel technique to increase learning signals in sparse reward environments and as branch for further study. I carried out experiments using Q-learning agent in tabular environments and DDPG agent for robotic control tasks to train them with both actual and hindsight experience. I empirically demonstrated that HER improves sample-efficiency and training performance and that agents trained with HER can be used as controller to discover options in for a different task. I proposed potential future work to explore and improve Intrinsic Motivation using hindsight experience in Reinforcement Learning.
@@ -576,6 +572,5 @@ I presented a classification of research on intrinsic motivation and identified 
 \section*{Acknowledgements}
 I would like to thank Louis Bagot and Kevin Mets for helpful feedback and insights during the project and Louis in particular for valuable feedback on the first version of the report.
 
-\newpage
 \printbibliography
 \end{document}
