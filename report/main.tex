@@ -1,7 +1,7 @@
 \documentclass[conference]{IEEEtran}
 \IEEEoverridecommandlockouts
 \pagestyle{plain}
-\usepackage{amsmath,amssymb,amsfonts, mathtools}
+\usepackage{amsmath,amssymb,amsfonts, mathtools} 
 \usepackage{algorithmic}
 \usepackage{algorithm}
 \usepackage{graphicx}
@@ -42,7 +42,7 @@
 \maketitle
 
 \begin{abstract}
-The field of Reinforcement Learning (RL) has managed to solve very complex tasks like video games or robotic tasks without human help. However, a huge weakness of RL remains when rewards are sparse or hard to get: an agent can only act randomly in hopes of discovering something rewarding. Researchers strive to generate interesting agents without rewards at all, a field sometimes called \textit{unsupervised RL}. These \textit{curious} agents often use intrinsic motivation to do exploration. I studied the theory behind the existing sub-fields and methods of Intrinsic Motivation, identified hindsight experience replay as branch of further research and explored ideas to improve learning with hindsight experience. Hindsight experience replay is a novel technique which allows learning from failures in addition to learning of success. I provided experiments in a gridworld setting and a robotic control setting to support my ideas. Based on those results, I propose possible areas of scientific research.
+The field of Reinforcement Learning (RL) has managed to solve very complex tasks like video games or robotic tasks without human help. However, a huge weakness of RL remains when rewards are sparse or hard to get: an agent can only act randomly in hope of discovering something rewarding. Researchers strive to generate interesting agents without rewards at all, a field sometimes called \textit{unsupervised RL}. These \textit{curious} agents often use intrinsic motivation to do exploration. I studied the theory behind the existing sub-fields and methods of Intrinsic Motivation, identified hindsight experience replay as branch of further research and explored ideas to improve learning with hindsight experience. Hindsight experience replay is a novel technique which allows learning from failures in addition to learning of success. I provided experiments in a gridworld setting and a robotic control setting to support my ideas. Based on those results, I propose possible areas of scientific research.
 \end{abstract}
 
 \section{Introduction}
@@ -69,7 +69,7 @@ I believe the contribution of my work to be
     \item proposing potential research areas to improve HER + DRL
 \end{itemize}{}
 
-In Section \ref{sec:background} notation and formalism is introduced as background on RL and to help explain algorithms studied demonstrated in experiments. In Section \ref{sec:literature_study}, I present related work, along with intrinsic motivation techniques and other approaches to learn from multiple signals. In Section \ref{sec:experiments}, I provide experiments in a tabular setting and deep setting to validate existing and proposed techniques. Finally, in Section \ref{sec:future_work}, I propose potential future work to explore and improve Intrinsic Motivation in Reinforcement Learning.
+In Section \ref{sec:background} notation and formalism is introduced as background on RL and to help explain algorithms studied demonstrated in experiments. In Section \ref{sec:literature_study}, I present related work, along with intrinsic motivation techniques and other approaches to learn from multiple signals. Section \ref{sec:experiments} provides results of experiments in a tabular setting and deep setting to validate existing and proposed techniques. In Section \ref{sec:future_work}, I propose potential future work to explore and improve Intrinsic Motivation in Reinforcement Learning. Section \ref{sec:conclusion} concludes the report.
 
 \section{Background on Reinforcement Learning} \label{sec:background}
 In Reinforcement Learning (RL), the problem to resolve is described as a Markov Decision Process (MDP). The goal of a MDP is to maximize the expectation of cumulative rewards received through a sequence of interactions. It is defined by:
@@ -560,6 +560,13 @@ The learning rate is the most important hyperparameter to tune for training deep
 \end{figure}
 
 Given the good results of hindsight experience sampling rate decay [\cite{vecchietti2020sampling}], and demonstrated improvements of using a cyclical learning rate (CLR) technique in classification problems [\cite{smith2017cyclical}], it is worthwhile doing research at applying CLR as a sampling rate method for hindsight experience sampling during training. It is also worthwhile to research whether other functional forms (e.g. parabolic, sinusoidal) of learning rate can produce equivalent or better results.
+
+\section{Conclusion} \label{sec:conclusion}
+I presented a classification of research on intrinsic motivation and identified hindsight experience replay (HER) as novel technique to increase learning signals in sparse reward environments and as branch for further study. I carried out experiments using Q-learning agent in tabular environments and DDPG agent for robotic control tasks to train them with both actual and hindsight experience. I empirically demonstrated that HER improves sample-efficiency and training performance and that agents trained with HER can be used as controller to discover options in for a different task. I proposed potential future work to explore and improve Intrinsic Motivation using hindsight experience in Reinforcement Learning.
+
+\section*{Acknowledgements}
+I would like to thank Louis Bagot and Kevin Mets for helpful feedback and insights during the project and Louis in particular for valuable feedback on the first version of the report.
+
 \newpage
 \printbibliography
 \end{document}
