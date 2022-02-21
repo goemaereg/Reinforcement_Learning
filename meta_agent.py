@@ -66,6 +66,8 @@ class MetaAgent(QLearning):
     def learn(self, s, a, r, s_, d=False):
         # unravel action (position)
         a0 = self.actions.index(a)
+        if r == 1:
+            print(r)
         super(MetaAgent, self).learn(s, a0, r, s_, d=False)
 
 
@@ -228,26 +230,29 @@ class MetaModel(Model):
         return opt_history, steps_history, key_history
 
     def save_policy_plot(self, path=None, text=True):
+        from matplotlib.colors import LinearSegmentedColormap
         """ Visualizes a policy and value function given agent and environment."""
-        cmap = clr.LinearSegmentedColormap.from_list('mycmap',
-                                                         ['#FF0000',
-                                                          '#000000',
-                                                          '#008000'])
+        #clist = ['#FF0000', '#000000', '#008000']
+        # clist = [(0, '#000000'), (0.1, '#FF0000'), (1, '#008000')]
+        # cmap = clr.LinearSegmentedColormap.from_list('mycmap', clist)
+        colors = ["black", "black", "red", "green"]
+        cmap = LinearSegmentedColormap.from_list("mycmap", colors)
         for key in range(self.agent.input_shape[0]):
             grid = np.zeros((self.env.height, self.env.width))
-            high = np.max(self.agent.Qtable[key])
+            vhigh = np.max(self.agent.Qtable[key])
             for obs in self.env.obstacles:
-                grid[obs[0]][obs[1]] = -high
+                grid[obs[0]][obs[1]] = -vhigh
             fig, ax = plt.subplots()
             for i in range(len(self.agent.actions)):
                 height, width = self.agent.actions[i]
-                grid[height][width] = self.agent.Qtable[key][i]
+                value = self.agent.Qtable[key][i]
+                grid[height][width] = value
                 if text:
                     ax.text(width, height,
                                f'{self.agent.Qtable[key][i]:4.2f}',
                                ha='center', va='center', color='w',
                             fontsize='xx-small')
-            im = ax.imshow(grid, cmap=cmap)
+            im = ax.imshow(grid, cmap=cmap, vmin=-vhigh, vmax=vhigh)
             ax.set_title(f'Meta QValue visualization (key = {key})')
             fig.tight_layout()
             path = f'{self.path}.qtable.{key}.plot.png'
@@ -284,24 +289,25 @@ def create_meta_model(model_ctrl):
                 agent_args=agent_args,
                 env_name=env_name,
                 env=model_ctrl.env,
-                env_big=env_big)
+                env_big=env_big,
+                base_path='outputx')
     model_meta = MetaModel(**args)
     return model_meta
 
 
-def train_meta_model(model, episodes):
-    ep, goals, keys = model.train_runs(episodes=episodes, max_episode_steps=10000)
+def train_meta_model(model, episodes,runs=1):
+    ep, goals, keys = model.train_runs(runs=runs, episodes=episodes, max_episode_steps=10000)
     # ep, goals, keys = model.train(episodes=episodes, max_episode_steps=10000)
-    model.save_agent(f'{model.path}.agent.npy')
-    model.save_plot_data(f'{model.path}.train.plot.npy')
-    model.save_plot(f'{model.path}.train.plot', episodes=episodes,
-                         yscale=None, ybase=2, smooth=True,
-                         xlabel='Episodes', ylabel='Goals',
-                         xaxis=ep, yaxis=goals, xlineat=2)
-    model.save_plot(f'{model.path}.train.key.plot', smooth=False,
-                    title='Key pick-up by chance',
-                    xlabel='Episode', ylabel='Key picked-up',
-                    xaxis=ep, yaxis=keys)
+    # model.save_agent(f'{model.path}.agent.npy')
+    # model.save_plot_data(f'{model.path}.train.plot.npy')
+    # model.save_plot(f'{model.path}.train.plot', episodes=episodes,
+    #                      yscale=None, ybase=2, smooth=True,
+    #                      xlabel='Episodes', ylabel='Goals',
+    #                      xaxis=ep, yaxis=goals, xlineat=2)
+    # model.save_plot(f'{model.path}.train.key.plot', smooth=False,
+    #                 title='Key pick-up by chance',
+    #                 xlabel='Episode', ylabel='Key picked-up',
+    #                 xaxis=ep, yaxis=keys)
 
 
 def main():
@@ -309,10 +315,11 @@ def main():
     model_ctrl.load_agent(ctrl_agent_path)
     #print(model.test())
     # meta agent
+    train_runs=1
     train_episodes=3000
     model_meta = create_meta_model(model_ctrl=model_ctrl)
-    train_meta_model(model_meta, episodes=train_episodes)
-    # model_meta.load_agent(meta_agent_path)
+    # train_meta_model(model_meta, episodes=train_episodes, runs=train_runs)
+    model_meta.load_agent(meta_agent_path)
     # test_episodes = 100
     # model_meta.load_agent(f'{model_meta.path}.agent.npy')
     # ep, goals, keys = model_meta.test(episodes=test_episodes, max_episode_steps=100)
@@ -323,7 +330,7 @@ def main():
     #                      smooth=False, title='Key pick-up by chance',
     #                      xlabel='Episode', ylabel='Key picked-up',
     #                      xaxis=ep, yaxis=keys)
-    # model_meta.save_policy_plot()
+    model_meta.save_policy_plot(text=False)
 
 if __name__ == '__main__':
     main()

@@ -12,7 +12,8 @@ class Model():
 
     A Model is an abstract entity that can simply act in an environment.
     """
-    def __init__(self, model_name, agent_class, env_name, name='Base', **kwargs):
+    def __init__(self, model_name, agent_class, env_name, name='Base',
+                 base_path='outputm', **kwargs):
         """
         Initializes the model
 
@@ -55,7 +56,7 @@ class Model():
 
         launchspecs = f'perf_{self.env.roomsize}'
         label = f'{self.model_name}_{self.name}_{self.env_name}_{self.agent.name}_{launchspecs}'
-        self.path = f'outputm/{label}'
+        self.path = f'{base_path}/{label}'
 
     def train(self, episodes, max_episode_steps):
         """
